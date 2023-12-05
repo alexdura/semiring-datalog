@@ -27,6 +27,7 @@ library
   exposed-modules:
       Datalog
       Lib
+      Relation
   other-modules:
       Paths_semiring
   autogen-modules:
