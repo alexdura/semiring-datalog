@@ -1,4 +1,4 @@
-module Eval where
+module Eval(Context, query, eval, emptyContext) where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Semiring as Semiring
@@ -47,7 +47,7 @@ immediateConsequence' ctx (a:as) (b, v) =
 lookupAtom :: Context a s -> Atom a s -> [(Binding a, s)]
 lookupAtom _ (Value s) = [(emptyBinding, s)]
 lookupAtom ctx (Literal p ts) =
-  let rel = ctx Map.! p
+  let rel = Map.findWithDefault Map.empty p ctx
       toBinding ks s = (foldr (\(t, k) b -> case t of (Variable name) -> Map.insert name k b
                                                       (Constant _) -> error "No constants in literals!")
                         emptyBinding (zip ts ks),
@@ -68,3 +68,18 @@ filterBindings :: (Semiring.Semiring s, Eq s, Eq a) => (Binding a, s) -> [(Bindi
 filterBindings (b, s) bs = [(fromJust $ joinBindings b b', Semiring.times s s') | (b', s') <- bs,
                              isJust $ joinBindings b b',
                              Semiring.times s s' /= Semiring.zero]
+
+eval :: (Ord a, Semiring.Semiring s, Eq s) => Program a s -> Context a s -> Context a s
+eval p@(Program cs) ctx =
+  let ctx' = foldr immediateConsequence ctx cs
+  in if ctx == ctx' then ctx
+     else eval p ctx'
+
+emptyContext :: Context a s
+emptyContext = Map.empty
+
+query :: String -> Context a s -> [([a], s)]
+query pred ctx =
+  case Map.lookup pred ctx of
+    Just rel -> Map.toList rel
+    Nothing -> []
