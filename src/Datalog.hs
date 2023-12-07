@@ -3,13 +3,13 @@ module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, (|-), va
 
 import Data.List
 
-data Program a b = Program [Clause a b] deriving Show
+data Program a b = Program [Clause a b]
 
-data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b] } deriving Show
+data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b] }
 
 data Atom a b = Literal Predicate [Term a]
               | Value b
-              deriving Show
+              | Function [Term a] ([a] -> b)
 
 data Term a = Variable String
             | Constant a
