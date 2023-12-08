@@ -1,11 +1,13 @@
-module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, (|-), var, cst, lit, val, prettyProgram) where
+module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (|-), var, cst, lit, val, prettyProgram) where
 
 
 import Data.List
 
 data Program a b = Program [Clause a b]
 
-data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b] }
+data Trace a b = Trace [Term a] ([a] -> b -> b)
+
+data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b],  trace :: Trace a b}
 
 data Atom a b = Literal Predicate [Term a]
               | Value b
@@ -25,13 +27,13 @@ prettyAtom (Value b) = show b
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = show v
 
-prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
+prettyClause (Clause hs ts _) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
 
 prettyProgram (Program cs) = intercalate "\n" (map prettyClause cs)
 
 infix 0 |-
 (|-) :: [Atom a s] -> [Atom a s] -> Clause a s
-(|-) = Clause
+(|-) h b = Clause h b (Trace [] (const id))
 
 lit :: String -> [Term a] -> Atom a s
 lit = Literal

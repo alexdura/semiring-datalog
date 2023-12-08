@@ -22,6 +22,12 @@ immediateConsequence c ctx =
   let bindings = immediateConsequence' ctx c.body (emptyBinding, Semiring.one)
   in foldr (\at -> insertAtoms at bindings) ctx c.heads
 
+applyTrace :: Trace a s -> (Binding a, s) -> s
+applyTrace (Trace ts f) (b, v) =
+  let args = map (\case (Variable name) -> b Map.! name
+                        (Constant c) -> c) ts
+  in f args v
+
 insertAtom :: Ord a => Atom a s -> (Binding a, s) -> Context a s -> Context a s
 insertAtom (Literal p ts) (b, v) ctx =
   let rel = Map.findWithDefault Map.empty p ctx
