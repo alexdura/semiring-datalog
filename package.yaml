@@ -23,6 +23,10 @@ dependencies:
 - base >= 4.7 && < 5
 - containers
 - semirings
+- csv
+- optparse-applicative
+- filepath
+
 
 ghc-options:
 - -Wall
@@ -66,3 +70,4 @@ tests:
     - semiring
     - tasty
     - tasty-hunit
+    - tasty-golden

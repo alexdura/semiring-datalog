@@ -29,6 +29,7 @@ library
       Datalog
       Eval
       Lib
+      Programs
       Relation
   other-modules:
       Paths_semiring
@@ -44,6 +45,9 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
+    , csv
+    , filepath
+    , optparse-applicative
     , semirings
   default-language: Haskell2010
 
@@ -63,6 +67,9 @@ executable semiring-exe
   build-depends:
       base >=4.7 && <5
     , containers
+    , csv
+    , filepath
+    , optparse-applicative
     , semiring
     , semirings
   default-language: Haskell2010
@@ -84,8 +91,12 @@ test-suite semiring-test
   build-depends:
       base >=4.7 && <5
     , containers
+    , csv
+    , filepath
+    , optparse-applicative
     , semiring
     , semirings
     , tasty
+    , tasty-golden
     , tasty-hunit
   default-language: Haskell2010
