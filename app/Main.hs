@@ -26,7 +26,7 @@ main = let opts = info (cliOptions <**> helper)
        in handleOptions =<< execParser opts
 
 
-runProgram :: (Read a, Show a, Ord a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
+runProgram :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
 runProgram p ind outd inrel outrel = do
   let inputFiles = (\r -> (r, ind </> r ++ ".csv")) <$> inrel
       outputFiles = (\r -> (r, outd </> r ++ ".csv")) <$> outrel
@@ -40,12 +40,12 @@ data ProgramDesc a s = ProgramDesc {
   program :: Program a s
   }
 
-runProgramDesc :: (Read a, Show a, Ord a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
+runProgramDesc :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
 runProgramDesc pd ind outd = runProgram pd.program ind outd pd.inRelations pd.outRelations
 
 andersenDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
-                            "FormalReturn", "ActualReturn", "Reachable"]
-               ["VarPointsTo", "Reachable"]
+                            "FormalReturn", "ActualReturn", "Reachable", "SrcLoc"]
+               ["VarPointsToLoc"]
                andersen
 
 handleOptions :: Options -> IO ()

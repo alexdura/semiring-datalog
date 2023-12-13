@@ -1,4 +1,4 @@
-module Eval(Context, query, eval, emptyContext, loadFromCSV, storeToCSV) where
+module Eval(Context, query, eval, emptyContext, loadFromCSV, storeToCSV, GroundTerm(..)) where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Semiring as Semiring
@@ -97,14 +97,28 @@ query pred ctx =
     Just rel -> Map.toList rel
     Nothing -> []
 
-loadFromCSV :: (Read a, Ord a) => Context a s -> String -> ([a] -> s) -> FilePath -> IO (Context a s)
+
+class GroundTerm a where
+  parse :: String -> a
+  unparse :: a -> String
+
+
+instance GroundTerm Int where
+  parse = read
+  unparse = show
+
+instance GroundTerm String where
+  parse = read
+  unparse = show
+
+loadFromCSV :: (GroundTerm a, Ord a) => Context a s -> String -> ([a] -> s) -> FilePath -> IO (Context a s)
 loadFromCSV ctx name dflt path = do
   Right csv <- CSV.parseCSVFromFile path
   let rel = Map.findWithDefault Map.empty name ctx
-      rel' = foldr (\row rel -> Map.insert (read <$> row) (dflt (read <$> row)) rel) rel (filter ([""] /=) csv)
+      rel' = foldr (\row rel -> Map.insert (parse <$> row) (dflt (parse <$> row)) rel) rel (filter ([""] /=) csv)
   return $ Map.insert name rel' ctx
 
-storeToCSV :: (Show a, Show s) => Context a s -> String -> FilePath -> IO ()
+storeToCSV :: (GroundTerm a, Show s) => Context a s -> String -> FilePath -> IO ()
 storeToCSV ctx name path =
-  let csv =  (\(t, v) -> (show <$> t) ++ [show v])  <$> (Map.toList (Map.findWithDefault Map.empty name ctx)) in
+  let csv =  (\(t, v) -> (unparse <$> t) ++ [show v])  <$> (Map.toList (Map.findWithDefault Map.empty name ctx)) in
     writeFile path (CSV.printCSV csv)

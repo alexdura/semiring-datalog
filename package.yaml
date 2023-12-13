@@ -43,6 +43,9 @@ default-extensions:
   - OverloadedRecordDot
   - DuplicateRecordFields
   - LambdaCase
+  - TypeSynonymInstances
+  - FlexibleInstances
+  - UndecidableInstances
 
 library:
   source-dirs: src

@@ -1,9 +1,30 @@
 module Programs(andersen) where
 
+import Eval
 import Datalog
+import Text.Read
+import Text.Printf
+
+instance GroundTerm (Either String Int) where
+  unparse = \case Left s -> s
+                  Right i -> printf "%d" i
+  parse = fst . head . (readPrec_to_S parseGroundTerm 0)
+
+parseAsInt :: ReadPrec (Either String Int)
+parseAsInt = do
+  i  <- readPrec :: ReadPrec Int
+  return $ Right i
+
+parseAsString :: ReadPrec (Either String Int)
+parseAsString = do
+  s <- look
+  return $ Left s
+
+parseGroundTerm :: ReadPrec (Either String Int)
+parseGroundTerm = parseAsInt <++ parseAsString
 
 
-andersen :: Program Int Bool
+andersen :: Program (Either String Int) Bool
 andersen =
   let alloc = lit "Alloc"
       move = lit "Move"
@@ -22,6 +43,9 @@ andersen =
       reachable = lit "Reachable"
       interProcAssign = lit "InterProcAssign"
 
+      varPointsToLoc = lit "VarPointsToLoc"
+      srcLoc = lit "SrcLoc"
+
       var = Datalog.var "var"
       from = Datalog.var "from"
       to = Datalog.var "to"
@@ -34,6 +58,14 @@ andersen =
       caller = Datalog.var "caller"
       callee = Datalog.var "callee"
 
+      f_to = Datalog.var "f_to"
+      l_to = Datalog.var "l_to"
+      c_to = Datalog.var "c_to"
+      f_heap = Datalog.var "f_heap"
+      l_heap = Datalog.var "l_heap"
+      c_heap = Datalog.var "c_heap"
+
+
 
   in
     Program [
@@ -45,5 +77,8 @@ andersen =
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
     [interProcAssign [to, from]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
     [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
-    [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]]
+    [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]],
+    [varPointsToLoc [f_to, l_to, c_to, f_heap, l_heap, c_heap]] += [varPointsTo[to, heap],
+                                                                    srcLoc[to, f_to, l_to, c_to],
+                                                                    srcLoc[heap, f_heap, l_heap, c_heap]]
     ]

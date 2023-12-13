@@ -62,7 +62,7 @@ evalTests = testGroup "Unit tests" [
 
 
 
-csvTestHelper :: (Read a, Show a, Ord a, Semiring s, Show s, Eq s) => Program a s -> [(String, FilePath)] -> [(String, FilePath)] -> IO ()
+csvTestHelper :: (GroundTerm a, Ord a, Semiring s, Show s, Eq s) => Program a s -> [(String, FilePath)] -> [(String, FilePath)] -> IO ()
 csvTestHelper p files outs = do
   ctx <- foldM (\ctx (name, path) -> loadFromCSV ctx name (const one) path) emptyContext files
   let ctx' = eval p ctx
