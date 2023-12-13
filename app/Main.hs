@@ -34,9 +34,19 @@ runProgram p ind outd inrel outrel = do
   let ctx' =  eval p ctx
   mapM_ (\(name, path) -> storeToCSV ctx' name path) outputFiles
 
+data ProgramDesc a s = ProgramDesc {
+  inRelations::[String],
+  outRelations::[String],
+  program :: Program a s
+  }
+
+runProgramDesc :: (Read a, Show a, Ord a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
+runProgramDesc pd ind outd = runProgram pd.program ind outd pd.inRelations pd.outRelations
+
+andersenDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
+                            "FormalReturn", "ActualReturn", "Reachable"]
+               ["VarPointsTo", "Reachable"]
+               andersen
 
 handleOptions :: Options -> IO ()
-handleOptions (Options inp out) = runProgram andersen inp out
-                                  ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
-                                   "FormalReturn", "ActualReturn", "Reachable"]
-                                  ["VarPointsTo", "Reachable"]
+handleOptions (Options ind outd) = runProgramDesc andersenDesc ind outd
