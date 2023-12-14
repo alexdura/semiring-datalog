@@ -102,7 +102,6 @@ class GroundTerm a where
   parse :: String -> a
   unparse :: a -> String
 
-
 instance GroundTerm Int where
   parse = read
   unparse = show

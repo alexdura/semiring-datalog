@@ -84,6 +84,7 @@ test-suite semiring-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      EvalSpec
       Paths_semiring
   autogen-modules:
       Paths_semiring

@@ -1,4 +1,6 @@
-module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (|-), (+=), var, cst, lit, val, prettyProgram) where
+module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (+=),
+                (+=|), (|.),
+                var, cst, lit, val, prettyProgram) where
 
 
 import Data.List
@@ -31,13 +33,10 @@ prettyClause (Clause hs ts _) = intercalate ", " (map prettyAtom hs) ++ " <- " +
 
 prettyProgram (Program cs) = intercalate "\n" (map prettyClause cs)
 
-infix 0 |-
-(|-) :: [Atom a s] -> [Atom a s] -> Clause a s
-(|-) h b = Clause h b (Trace [] (const id))
 
 infix 0 +=
 (+=) :: [Atom a s] -> [Atom a s] -> Clause a s
-(+=) = (|-)
+(+=) h b = Clause h b (Trace [] (const id))
 
 lit :: String -> [Term a] -> Atom a s
 lit = Literal
@@ -50,3 +49,15 @@ cst = Constant
 
 var :: String -> Term a
 var = Variable
+
+withTrace :: Trace a s -> [Atom a s] -> [Atom a s] -> Clause a s
+withTrace trace body = \head -> Clause head body trace
+
+clause :: [Atom a s] -> ([Atom a s] -> Clause a s) -> Clause a s
+clause head rest = rest head
+
+infix 1 |.
+(|.) = withTrace
+
+infix 0 +=|
+(+=|)= clause

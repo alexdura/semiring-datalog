@@ -7,11 +7,11 @@ import qualified Data.Set as Set
 data ContextValue a = ContextValue a
                     | Any
                     | None
-                    deriving (Ord, Eq)
+                    deriving (Ord, Eq, Show)
 
 data Context2 a = Context2 (ContextValue a) (ContextValue a)
                 | Empty2
-                deriving (Ord, Eq)
+                deriving (Ord, Eq, Show)
 
 
 -- instance Eq a => Monoid (Context2 a) where
@@ -39,13 +39,14 @@ class Monoid a => AbsorbingMonoid a where
 instance Eq a => AbsorbingMonoid (Context2 a) where
   mabsorb = Empty2
 
-newtype Context2SR a = Context2SR (Set (Context2 a))
-
 newtype Monoid a => MonoidSemiring a = MonoidSemiring {toSet::Set a}
 fromSet :: AbsorbingMonoid a => Set a -> MonoidSemiring a
 fromSet = MonoidSemiring
 
-instance (AbsorbingMonoid a, Ord a) => Semiring (MonoidSemiring a) where
+instance Eq a => Eq (MonoidSemiring a)
+instance Show a => Show (MonoidSemiring a)
+
+instance (AbsorbingMonoid a, Ord a, Eq a) => Semiring (MonoidSemiring a) where
   plus (MonoidSemiring l) (MonoidSemiring r) = MonoidSemiring $ Set.union l r
   times (MonoidSemiring l) (MonoidSemiring r) = MonoidSemiring $ Set.filter (mabsorb /= ) $ Set.map (uncurry (<>)) (Set.cartesianProduct l r)
   zero = MonoidSemiring Set.empty

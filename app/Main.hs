@@ -5,6 +5,7 @@ import System.FilePath
 import Datalog
 import Eval
 import Programs
+import Context
 import Control.Monad
 import Data.Semiring
 
@@ -26,7 +27,7 @@ main = let opts = info (cliOptions <**> helper)
        in handleOptions =<< execParser opts
 
 
-runProgram :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
+runProgram :: (GroundTerm a, Ord a, Show a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
 runProgram p ind outd inrel outrel = do
   let inputFiles = (\r -> (r, ind </> r ++ ".csv")) <$> inrel
       outputFiles = (\r -> (r, outd </> r ++ ".csv")) <$> outrel
@@ -40,13 +41,24 @@ data ProgramDesc a s = ProgramDesc {
   program :: Program a s
   }
 
-runProgramDesc :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
+runProgramDesc :: (GroundTerm a, Ord a, Show a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
 runProgramDesc pd ind outd = runProgram pd.program ind outd pd.inRelations pd.outRelations
 
+andersenDesc :: ProgramDesc (Either String Int) Bool
 andersenDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
                             "FormalReturn", "ActualReturn", "Reachable", "SrcLoc"]
                ["VarPointsToLoc"]
                andersen
 
+
+andersenCtxDesc :: ProgramDesc (Either String Int) (ContextSemiring2 Int)
+andersenCtxDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
+                               "FormalReturn", "ActualReturn", "Reachable", "SrcLoc"]
+                  ["VarPointsToLoc"]
+                  andersenCtx
+
+
+
+
 handleOptions :: Options -> IO ()
-handleOptions (Options ind outd) = runProgramDesc andersenDesc ind outd
+handleOptions (Options ind outd) = runProgramDesc andersenCtxDesc ind outd
