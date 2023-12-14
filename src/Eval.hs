@@ -1,4 +1,4 @@
-module Eval(Context, query, eval, emptyContext, loadFromCSV, storeToCSV, GroundTerm(..)) where
+module Eval(Context, query, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, GroundTerm(..)) where
 
 import qualified Data.Map.Strict as Map
 import qualified Data.Semiring as Semiring
@@ -23,7 +23,8 @@ emptyBinding = Map.empty
 immediateConsequence :: (Ord a, Eq s, Semiring.Semiring s) => Clause a s -> Context a s -> Context a s
 immediateConsequence c ctx =
   let bindings = immediateConsequence' ctx c.body (emptyBinding, Semiring.one)
-  in foldr (\at -> insertAtoms at bindings) ctx c.heads
+      bindings' = (\b -> (fst b, applyTrace c.trace b)) <$> bindings
+  in foldr (\at -> insertAtoms at bindings') ctx c.heads
 
 applyTrace :: Trace a s -> (Binding a, s) -> s
 applyTrace (Trace ts f) (b, v) =
@@ -87,6 +88,15 @@ eval p@(Program cs) ctx =
   let ctx' = foldr immediateConsequence ctx cs
   in if ctx == ctx' then ctx
      else eval p ctx'
+
+evalStep :: (Ord a, Show a, Semiring.Semiring s, Eq s, Show s) => Program a s -> Context a s -> IO (Context a s)
+evalStep p@(Program cs) ctx = do
+  print $ show ctx
+  _ <- getChar
+  let ctx' = foldr immediateConsequence ctx cs
+  if ctx == ctx' then return ctx
+    else evalStep p ctx'
+
 
 emptyContext :: Context a s
 emptyContext = Map.empty

@@ -2,6 +2,7 @@ module Programs(andersen, andersenCtx) where
 
 import Eval
 import Datalog
+import qualified Context
 import Text.Read
 import Text.Printf
 
@@ -84,6 +85,7 @@ andersen =
     ]
 
 
+andersenCtx :: Program (Either String Int) (Context.ContextSemiring2 Int)
 andersenCtx =
   let alloc = lit "Alloc"
       move = lit "Move"
@@ -124,7 +126,7 @@ andersenCtx =
       l_heap = Datalog.var "l_heap"
       c_heap = Datalog.var "c_heap"
 
-      record _ = id
+      record [Right x] = Context.push (Context.ContextValue x)
 
   in
     Program [
@@ -136,7 +138,7 @@ andersenCtx =
     [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
 
-    [interProcAssign [to, from]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
+    [interProcAssign [to, from]] +=| Trace [c] record |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
     [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
 
     [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]],

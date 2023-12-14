@@ -16,6 +16,7 @@ data Context2 a = Context2 (ContextValue a) (ContextValue a)
 
 -- instance Eq a => Monoid (Context2 a) where
 
+contextValuePlus :: Eq a => ContextValue a -> ContextValue a -> ContextValue a
 contextValuePlus Any v = v
 contextValuePlus v Any = v
 contextValuePlus None _ = None
@@ -43,10 +44,13 @@ newtype Monoid a => MonoidSemiring a = MonoidSemiring {toSet::Set a}
 fromSet :: AbsorbingMonoid a => Set a -> MonoidSemiring a
 fromSet = MonoidSemiring
 
-instance Eq a => Eq (MonoidSemiring a)
-instance Show a => Show (MonoidSemiring a)
+instance (Eq a, Monoid a) => Eq (MonoidSemiring a) where
+  (==) m1 m2 = m1.toSet == m2.toSet
 
-instance (AbsorbingMonoid a, Ord a, Eq a) => Semiring (MonoidSemiring a) where
+instance (Show a, Monoid a) => Show (MonoidSemiring a) where
+  show = show . toSet
+
+instance (AbsorbingMonoid a, Ord a) => Semiring (MonoidSemiring a) where
   plus (MonoidSemiring l) (MonoidSemiring r) = MonoidSemiring $ Set.union l r
   times (MonoidSemiring l) (MonoidSemiring r) = MonoidSemiring $ Set.filter (mabsorb /= ) $ Set.map (uncurry (<>)) (Set.cartesianProduct l r)
   zero = MonoidSemiring Set.empty
