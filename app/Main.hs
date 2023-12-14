@@ -43,7 +43,7 @@ stepProgram p ind outd inrel outrel = do
       outputFiles = (\r -> (r, outd </> r ++ ".csv")) <$> outrel
   ctx <- foldM (\ctx (name, path) -> loadFromCSV ctx name (const one) path) emptyContext inputFiles
   ctx' <- evalStep p ctx
-  mapM_ (\(name, path) -> storeToCSV ctx name path) outputFiles
+  mapM_ (\(name, path) -> storeToCSV ctx' name path) outputFiles
 
 
 data ProgramDesc a s = ProgramDesc {

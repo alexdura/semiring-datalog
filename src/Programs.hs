@@ -5,6 +5,7 @@ import Datalog
 import qualified Context
 import Text.Read
 import Text.Printf
+import Data.Semiring
 
 instance GroundTerm (Either String Int) where
   unparse = \case Left s -> s
@@ -127,6 +128,10 @@ andersenCtx =
       c_heap = Datalog.var "c_heap"
 
       record [Right x] = Context.push (Context.ContextValue x)
+      merge [Right x] = times (Context.push (Context.ContextValue x)
+                               one::Context.ContextSemiring2 Int)-- check that x was pushed
+      -- record _ = id
+      -- merge _ = id
 
   in
     Program [
@@ -138,10 +143,14 @@ andersenCtx =
     [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
 
-    [interProcAssign [to, from]] +=| Trace [c] record |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
-    [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
+    -- [interProcAssign [to, from]] +=| Trace [c] record |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
+    -- [interProcAssign [to, from]] +=| Trace [c] merge |. [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
 
-    [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]],
+    [varPointsTo [to, heap]] +=| Trace[c] record |. [callGraph[c, f], formalArg[f, n, to], actualArg[c, n, from], varPointsTo[from, heap]],
+    [varPointsTo [to, heap]] +=| Trace[c] merge |.  [callGraph[c, f], formalReturn[f, from], actualReturn [c, to], varPointsTo[from, heap]],
+
+
+
     [varPointsToLoc [f_to, l_to, c_to, f_heap, l_heap, c_heap]] += [varPointsTo[to, heap],
                                                                     srcLoc[to, f_to, l_to, c_to],
                                                                     srcLoc[heap, f_heap, l_heap, c_heap]]
