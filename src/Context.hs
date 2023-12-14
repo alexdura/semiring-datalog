@@ -26,8 +26,8 @@ contextValuePlus (ContextValue v1) (ContextValue v2) = if v1 == v2 then (Context
 instance Eq a => Semigroup (Context2 a) where
   (<>) Empty2 _ = Empty2
   (<>) _ Empty2 = Empty2
-  (<>) (Context2 l0 l1) (Context2 r0 r1) = let e0 = contextValuePlus l0 l1
-                                               e1 = contextValuePlus r0 r1
+  (<>) (Context2 l0 l1) (Context2 r0 r1) = let e0 = contextValuePlus l0 r0
+                                               e1 = contextValuePlus l1 r1
                                            in if e0 == None || e1 == None then Empty2
                                               else Context2 e0 e1
 
