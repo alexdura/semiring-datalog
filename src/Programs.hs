@@ -6,6 +6,7 @@ import qualified Context
 import Text.Read
 import Text.Printf
 import Data.Semiring
+import Data.IntMap.Merge.Lazy (merge)
 
 instance GroundTerm (Either String Int) where
   unparse = \case Left s -> s
@@ -106,6 +107,10 @@ andersenCtx =
       interProcAssign = lit "InterProcAssign"
 
       varPointsToLoc = lit "VarPointsToLoc"
+      callGraphLoc = lit "CallGraphLoc"
+      reachableLoc = lit "ReachableLoc"
+      reachableDebug = lit "ReachableDebug"
+
       srcLoc = lit "SrcLoc"
 
       var = Datalog.var "var"
@@ -126,12 +131,19 @@ andersenCtx =
       f_heap = Datalog.var "f_heap"
       l_heap = Datalog.var "l_heap"
       c_heap = Datalog.var "c_heap"
+      f_from = Datalog.var "f_from"
+      l_from = Datalog.var "l_from"
+      c_from = Datalog.var "c_from"
 
-      record [Right x] = Context.push (Context.ContextValue x)
-      merge [Right x] = times (Context.push (Context.ContextValue x)
-                               one::Context.ContextSemiring2 Int)-- check that x was pushed
+      -- record [Right x] = Context.push (Context.ContextValue x)
+      -- merge [Right x] = times (Context.push (Context.ContextValue x)
+      --                          one::Context.ContextSemiring2 Int)-- check that x was pushed
       -- record _ = id
       -- merge _ = id
+
+      onCall [Right x] = Context.push (Context.ContextValue x)
+      onReturn [Right x] v = (Context.pushRight Context.Any ((Context.push (Context.ContextValue x) (Data.Semiring.one)) Data.Semiring.* v))
+      -- onCall _ = id
 
   in
     Program [
@@ -140,18 +152,23 @@ andersenCtx =
     [locPointsTo [baseH, heap]] += [store [base, from], varPointsTo [from, heap], varPointsTo [base, baseH]],
     [varPointsTo [to, heap]] += [load [to, base], varPointsTo [base, baseH], locPointsTo [baseH, heap]],
 
-    [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
+    -- [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
+
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
 
-    -- [interProcAssign [to, from]] +=| Trace [c] record |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
-    -- [interProcAssign [to, from]] +=| Trace [c] merge |. [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
+    [reachableDebug [c, callee]] += [call[callee, c, f], reachable[f]],
 
-    [varPointsTo [to, heap]] +=| Trace[c] record |. [callGraph[c, f], formalArg[f, n, to], actualArg[c, n, from], varPointsTo[from, heap]],
-    [varPointsTo [to, heap]] +=| Trace[c] merge |.  [callGraph[c, f], formalReturn[f, from], actualReturn [c, to], varPointsTo[from, heap]],
+    [interProcAssign [to, from, c]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
+    [interProcAssign [to, from, c]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
 
+    --     [varPointsTo [to, heap]] += [interProcAssign[to, from], varPointsTo[from, heap]],
 
+    [varPointsTo [to, heap]] +=| Trace [c] onCall |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from], varPointsTo[from, heap]],
+    [varPointsTo [to, heap]] +=| Trace [c] onReturn |. [callGraph [c, f], formalReturn[f, from], actualReturn [c, to], varPointsTo[from, heap]],
 
     [varPointsToLoc [f_to, l_to, c_to, f_heap, l_heap, c_heap]] += [varPointsTo[to, heap],
                                                                     srcLoc[to, f_to, l_to, c_to],
-                                                                    srcLoc[heap, f_heap, l_heap, c_heap]]
+                                                                    srcLoc[heap, f_heap, l_heap, c_heap]],
+    [callGraphLoc [l_from, l_to]] += [callGraph[c, callee], srcLoc[c, f_from, l_from, c_from], srcLoc[callee, f_to, l_to, c_to]],
+    [reachableLoc [l_to]] += [reachable[f],  srcLoc[f, f_to, l_to, c_to]]
     ]

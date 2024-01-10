@@ -46,7 +46,7 @@ ActualReturn($c, v), Node($c), Node(v) :- <: $r = $c :>, $c <: $f (..) :> , v = 
 // VarPointsTo(to, heap) ← InterProcAssign(to, from), VarPointsTo(from, heap).
 // VarPointsTo(to, heap) :- InterProcAssign(to, from), VarPointsTo(from, heap).
 
-ReachableInit(f), Reachable(f), Node(f) :- f <: int main(..) {.. } :>.
+ReachableInit($f), Reachable($f), Node($f) :- <: int $f(..) {.. } :>, c_name($f) == "main".
 
 // OUTPUT('Call, "Call.csv", "csv").
 // OUTPUT('VarPointsTo, "VarPointsTo.csv", "csv").

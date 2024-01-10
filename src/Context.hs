@@ -1,4 +1,4 @@
-module Context(ContextValue(..), ContextSemiring2, push, ctx2) where
+module Context(ContextValue(..), ContextSemiring2, push, pushRight, ctx2) where
 
 import Data.Semiring
 import Data.Set (Set)
@@ -63,8 +63,17 @@ push' None _ = Empty2
 push' _ Empty2 = Empty2
 push' v (Context2 v1 _) = Context2 v v1
 
+pushRight' :: ContextValue a -> Context2 a -> Context2 a
+pushRight' None _ = Empty2
+pushRight' _ Empty2 = Empty2
+pushRight' v (Context2 _ v1) = Context2 v1 v
+
 push :: Ord a => ContextValue a -> ContextSemiring2 a -> ContextSemiring2 a
 push v = fromSet . Set.filter (Empty2 /= ) . Set.map (push' v) . toSet
+
+
+pushRight :: Ord a => ContextValue a -> ContextSemiring2 a -> ContextSemiring2 a
+pushRight v = fromSet . Set.filter (Empty2 /= ) . Set.map (pushRight' v) . toSet
 
 ctx2 :: Eq a => a -> a -> ContextSemiring2 a
 ctx2 x y = fromSet $ Set.singleton $ Context2 (ContextValue x) (ContextValue y)
