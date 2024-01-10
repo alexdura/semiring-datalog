@@ -1,6 +1,7 @@
 module Eval(Context, query, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, GroundTerm(..)) where
 
 import qualified Data.Map.Strict as Map
+import Data.Semiring (Semiring)
 import qualified Data.Semiring as Semiring
 import Data.Maybe
 import qualified Text.CSV as CSV
@@ -20,7 +21,7 @@ emptyBinding :: Binding a
 emptyBinding = Map.empty
 
 
-immediateConsequence :: (Ord a, Eq s, Semiring.Semiring s) => Clause a s -> Context a s -> Context a s
+immediateConsequence :: (Ord a, Eq s, Semiring s) => Clause a s -> Context a s -> Context a s
 immediateConsequence c ctx =
   let bindings = immediateConsequence' ctx c.body (emptyBinding, Semiring.one)
       bindings' = (\b -> (fst b, applyTrace c.trace b)) <$> bindings
@@ -32,20 +33,20 @@ applyTrace (Trace ts f) (b, v) =
                         (Constant c) -> c) ts
   in f args v
 
-insertAtom :: Ord a => Atom a s -> (Binding a, s) -> Context a s -> Context a s
+insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -> Context a s
 insertAtom (Literal p ts) (b, v) ctx =
   let rel = Map.findWithDefault Map.empty p ctx
       tpl = map (\case (Variable name) -> b Map.! name
                        (Constant c) -> c) ts
-      rel' = Map.insert tpl v rel
+      rel' = Map.insertWith (Semiring.+) tpl v rel
   in Map.insert p rel' ctx
 insertAtom at _ _ = error "Unexpected head "
 
 
-insertAtoms :: Ord a => Atom a s -> [(Binding a, s)] -> Context a s -> Context a s
+insertAtoms :: (Ord a, Semiring s) => Atom a s -> [(Binding a, s)] -> Context a s -> Context a s
 insertAtoms at bs ctx = foldr (insertAtom at) ctx bs
 
-immediateConsequence' :: (Eq a, Eq s, Semiring.Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
+immediateConsequence' :: (Eq a, Eq s, Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
 immediateConsequence' _ [] (b, v) = [(b, v)]
 immediateConsequence' ctx (a:as) (b, v) =
   let bindingsNext = filterBindings (b, v) $ case a of Literal _ _ -> (lookupLiteral ctx a)
@@ -77,19 +78,19 @@ joinBindings b1 b2 =
     if common1 == common2 then Just $ Map.union b1 b2
     else Nothing
 
-filterBindings :: (Semiring.Semiring s, Eq s, Eq a) => (Binding a, s) -> [(Binding a, s)] -> [(Binding a, s)]
+filterBindings :: (Semiring s, Eq s, Eq a) => (Binding a, s) -> [(Binding a, s)] -> [(Binding a, s)]
 
 filterBindings (b, s) bs = [(fromJust $ joinBindings b b', Semiring.times s s') | (b', s') <- bs,
                              isJust $ joinBindings b b',
                              Semiring.times s s' /= Semiring.zero]
 
-eval :: (Ord a, Semiring.Semiring s, Eq s) => Program a s -> Context a s -> Context a s
+eval :: (Ord a, Semiring s, Eq s) => Program a s -> Context a s -> Context a s
 eval p@(Program cs) ctx =
   let ctx' = foldr immediateConsequence ctx cs
   in if ctx == ctx' then ctx
      else eval p ctx'
 
-evalStep :: (Ord a, Show a, Semiring.Semiring s, Eq s, Show s) => Program a s -> Context a s -> IO (Context a s)
+evalStep :: (Ord a, Show a, Semiring s, Eq s, Show s) => Program a s -> Context a s -> IO (Context a s)
 evalStep p@(Program cs) ctx = do
   print $ show ctx
   _ <- getChar

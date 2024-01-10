@@ -12,6 +12,7 @@ import Test.Tasty
 import Test.Tasty.Golden
 import Test.Tasty.HUnit
 import qualified Programs
+import Context
 
 
 evalTests :: TestTree
@@ -21,7 +22,8 @@ evalTests = testGroup "Unit tests" [
   testCase "eval 2" $ (query "path" r1) @?= [([1, 2], True), ([1, 3], True), ([2, 3], True)],
   testCase "eval 3" $ (query "edge" r2) @?= [],
   testCase "eval 4" $ (query "path" r2) @?= [],
-  testCase "eval 5" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))]
+  testCase "eval 5" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))],
+  testCase "eval 6" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))]
   ]
 
 
@@ -88,3 +90,14 @@ p3 = Program [
   ]
 
 r3 = eval p3 emptyContext
+
+pred1 = lit "pred1"
+pred2 = lit "pred2"
+
+p4 :: Program Integer (ContextSemiring2 Int)
+p4 = Program [
+  [pred1 [cst 1, cst 2]] += [val $ ctx2 1 2],
+  [pred1 [cst 1, cst 3]] += [val $ ctx2 3 4],
+  [pred2 [x]] += [pred1 [x, y]]]
+
+r4 = eval p4 emptyContext
