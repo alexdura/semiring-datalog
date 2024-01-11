@@ -11,7 +11,7 @@ data Trace a b = Trace [Term a] ([a] -> b -> b)
 
 data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b],  trace :: Trace a b}
 
-data Atom a b = Literal Predicate [Term a]
+data Atom a b = Literal Predicate [Term a] (b -> b)
               | Value b
               | Function [Term a] ([a] -> b)
 
@@ -23,7 +23,7 @@ data Term a = Variable String
 type Predicate = String
 
 
-prettyAtom (Literal p ts) = p ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
+prettyAtom (Literal p ts _) = p ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 prettyAtom (Value b) = show b
 
 prettyTerm (Constant c) = show c
@@ -39,7 +39,7 @@ infix 0 +=
 (+=) h b = Clause h b (Trace [] (const id))
 
 lit :: String -> [Term a] -> Atom a s
-lit = Literal
+lit s ts  = Literal s ts id
 
 val :: s -> Atom a s
 val = Value

@@ -34,7 +34,7 @@ applyTrace (Trace ts f) (b, v) =
   in f args v
 
 insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -> Context a s
-insertAtom (Literal p ts) (b, v) ctx =
+insertAtom (Literal p ts _) (b, v) ctx =
   let rel = Map.findWithDefault Map.empty p ctx
       tpl = map (\case (Variable name) -> b Map.! name
                        (Constant c) -> c) ts
@@ -49,7 +49,7 @@ insertAtoms at bs ctx = foldr (insertAtom at) ctx bs
 immediateConsequence' :: (Eq a, Eq s, Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
 immediateConsequence' _ [] (b, v) = [(b, v)]
 immediateConsequence' ctx (a:as) (b, v) =
-  let bindingsNext = filterBindings (b, v) $ case a of Literal _ _ -> (lookupLiteral ctx a)
+  let bindingsNext = filterBindings (b, v) $ case a of Literal _ _ _-> (lookupLiteral ctx a)
                                                        Value s -> [(emptyBinding, s)]
                                                        f@(Function _ _) -> [(emptyBinding, applyFunction b f)]
   in concatMap (immediateConsequence' ctx as) bindingsNext
@@ -61,13 +61,13 @@ applyFunction b (Function ts f) =
   in f args
 
 lookupLiteral :: Context a s -> Atom a s -> [(Binding a, s)]
-lookupLiteral ctx (Literal p ts) =
+lookupLiteral ctx (Literal p ts f) =
   let rel = Map.findWithDefault Map.empty p ctx
       toBinding ks s = (foldr (\(t, k) b -> case t of (Variable name) -> Map.insert name k b
                                                       (Constant _) -> error "No constants in literals!")
                         emptyBinding (zip ts ks),
                         s)
-  in Map.foldrWithKey (\ks v bs -> (toBinding ks v) : bs) [] rel
+  in Map.foldrWithKey (\ks v bs -> toBinding ks (f v) : bs) [] rel
 
 
 joinBindings :: Eq a => Binding a -> Binding a -> Maybe (Binding a)

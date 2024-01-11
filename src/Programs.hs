@@ -6,7 +6,7 @@ import qualified Context
 import Text.Read
 import Text.Printf
 import Data.Semiring
-import Data.IntMap.Merge.Lazy (merge)
+
 
 instance GroundTerm (Either String Int) where
   unparse = \case Left s -> s
@@ -141,7 +141,9 @@ andersenCtx =
       -- record _ = id
       -- merge _ = id
 
+      -- push the current call site
       onCall [Right x] = Context.push (Context.ContextValue x)
+      -- check that this returns to the current call site; if it does, push it out from the context
       onReturn [Right x] v = (Context.pushRight Context.Any ((Context.push (Context.ContextValue x) (Data.Semiring.one)) Data.Semiring.* v))
       -- onCall _ = id
 
@@ -158,10 +160,9 @@ andersenCtx =
 
     [reachableDebug [c, callee]] += [call[callee, c, f], reachable[f]],
 
-    [interProcAssign [to, from, c]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
-    [interProcAssign [to, from, c]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
+    [interProcAssign [to, from]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
+    [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
 
-    --     [varPointsTo [to, heap]] += [interProcAssign[to, from], varPointsTo[from, heap]],
 
     [varPointsTo [to, heap]] +=| Trace [c] onCall |. [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from], varPointsTo[from, heap]],
     [varPointsTo [to, heap]] +=| Trace [c] onReturn |. [callGraph [c, f], formalReturn[f, from], actualReturn [c, to], varPointsTo[from, heap]],
