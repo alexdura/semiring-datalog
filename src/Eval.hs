@@ -5,6 +5,7 @@ import Data.Semiring (Semiring)
 import qualified Data.Semiring as Semiring
 import Data.Maybe
 import qualified Text.CSV as CSV
+import Control.Monad ( foldM )
 import System.IO
 import Debug.Trace (trace)
 
@@ -49,10 +50,10 @@ insertAtoms at bs ctx = foldr (insertAtom at) ctx bs
 immediateConsequence' :: (Eq a, Eq s, Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
 immediateConsequence' _ [] (b, v) = [(b, v)]
 immediateConsequence' ctx (a:as) (b, v) =
-  let bindingsNext = filterBindings (b, v) $ case a of Literal _ _ _-> (lookupLiteral ctx a)
-                                                       Value s -> [(emptyBinding, s)]
-                                                       f@(Function _ _) -> [(emptyBinding, applyFunction b f)]
-  in concatMap (immediateConsequence' ctx as) bindingsNext
+  let bindingsNext = case a of Literal _ _ _-> lookupLiteral ctx a b
+                               Value s -> [(b, s)]
+                               f@(Function _ _) -> [(b, applyFunction b f)]
+  in concatMap (immediateConsequence' ctx as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
 
 applyFunction :: Binding a -> Atom a s -> s
 applyFunction b (Function ts f) =
@@ -60,29 +61,22 @@ applyFunction b (Function ts f) =
                         (Constant c) -> c) ts
   in f args
 
-lookupLiteral :: Context a s -> Atom a s -> [(Binding a, s)]
-lookupLiteral ctx (Literal p ts f) =
+lookupTerm :: Eq a => Binding a -> (Term a s, a) -> Maybe (Binding a)
+lookupTerm b (t, k) = case t of (Variable name) -> case Map.lookup name b of
+                                                     Just v -> if v == k then Just b else Nothing -- name already bound, check equality
+                                                     Nothing -> Just $ Map.insert name k b -- name not bound, bind now
+                                (Constant c) -> if c == k then Just b else Nothing
+                                (Expr opds f) -> if evalExpr b opds f == k then Just b else Nothing
+
+evalExpr :: Binding a -> [Term a b] -> ([a] -> a) -> a
+evalExpr = undefined
+
+lookupLiteral :: Eq a => Context a s -> Atom a s -> Binding a -> [(Binding a, s)]
+lookupLiteral ctx (Literal p ts f) b =
   let rel = Map.findWithDefault Map.empty p ctx
-      toBinding ks s = (foldr (\(t, k) b -> case t of (Variable name) -> Map.insert name k b
-                                                      (Constant _) -> error "No constants in literals!")
-                        emptyBinding (zip ts ks),
-                        s)
-  in Map.foldrWithKey (\ks v bs -> toBinding ks (f v) : bs) [] rel
-
-
-joinBindings :: Eq a => Binding a -> Binding a -> Maybe (Binding a)
-joinBindings b1 b2 =
-  let common1 = Map.intersection b1 b2
-      common2 = Map.intersection b2 b1
-  in
-    if common1 == common2 then Just $ Map.union b1 b2
-    else Nothing
-
-filterBindings :: (Semiring s, Eq s, Eq a) => (Binding a, s) -> [(Binding a, s)] -> [(Binding a, s)]
-
-filterBindings (b, s) bs = [(fromJust $ joinBindings b b', Semiring.times s s') | (b', s') <- bs,
-                             isJust $ joinBindings b b',
-                             Semiring.times s s' /= Semiring.zero]
+  in  Map.foldrWithKey (\ks v bs -> case foldM lookupTerm b (zip ts ks) of
+                                      Just b' -> (b', f v):bs
+                                      Nothing -> bs) [] rel
 
 eval :: (Ord a, Semiring s, Eq s) => Program a s -> Context a s -> Context a s
 eval p@(Program cs) ctx =
