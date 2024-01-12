@@ -29,6 +29,7 @@ prettyAtom (Value b) = show b
 
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = show v
+prettyTerm (Expr ts _) = "expr(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
 prettyClause (Clause hs ts _) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
 

@@ -38,7 +38,8 @@ insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -
 insertAtom (Literal p ts _) (b, v) ctx =
   let rel = Map.findWithDefault Map.empty p ctx
       tpl = map (\case (Variable name) -> b Map.! name
-                       (Constant c) -> c) ts
+                       (Constant c) -> c
+                       (Expr opds f) -> evalExpr b opds f) ts
       rel' = Map.insertWith (Semiring.+) tpl v rel
   in Map.insert p rel' ctx
 insertAtom at _ _ = error "Unexpected head "
@@ -69,7 +70,9 @@ lookupTerm b (t, k) = case t of (Variable name) -> case Map.lookup name b of
                                 (Expr opds f) -> if evalExpr b opds f == k then Just b else Nothing
 
 evalExpr :: Binding a -> [Term a b] -> ([a] -> a) -> a
-evalExpr = undefined
+evalExpr b opds f = f $ map (\case (Variable name) -> b Map.! name
+                                   (Constant c) -> c
+                                   (Expr opds' f') -> evalExpr b opds' f') opds
 
 lookupLiteral :: Eq a => Context a s -> Atom a s -> Binding a -> [(Binding a, s)]
 lookupLiteral ctx (Literal p ts f) b =
