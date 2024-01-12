@@ -23,7 +23,8 @@ evalTests = testGroup "Unit tests" [
   testCase "eval 3" $ (query "edge" r2) @?= [],
   testCase "eval 4" $ (query "path" r2) @?= [],
   testCase "eval 5" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))],
-  testCase "eval 6" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))]
+  testCase "eval 6" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))],
+  testCase "eval 7" $ (query "E" r5) @?= [([2],True),([3],True),([4],True)]
   ]
 
 
@@ -101,3 +102,14 @@ p4 = Program [
   [pred2 [x]] += [pred1 [x, y]]]
 
 r4 = eval p4 emptyContext
+
+p5 :: Program Integer Bool
+p5 =
+  let k = lit "K"
+      e = lit "E"
+  in
+  Program [
+    [k[cst 1], k[cst 2]] += [val True],
+    [e[Expr [x, y] (\[x', y'] -> x' Prelude.+ y')]] += [k[x], k[y]]]
+
+r5 = eval p5 emptyContext
