@@ -61,21 +61,29 @@ stepProgramDesc pd ind outd = stepProgram pd.program ind outd pd.inRelations pd.
 
 andersenDesc :: ProgramDesc (Either String Int) Bool
 andersenDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
-                            "FormalReturn", "ActualReturn", "Reachable", "SrcLoc"]
+                            "FormalReturn", "ActualReturn", "ReachableInit", "SrcLoc"]
                ["VarPointsToLoc"]
                andersen
 
 
 andersenCtxDesc :: ProgramDesc (Either String Int) (ContextSemiring2 Int)
 andersenCtxDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
-                               "FormalReturn", "ActualReturn", "Reachable", "SrcLoc"]
+                               "FormalReturn", "ActualReturn", "ReachableInit", "SrcLoc"]
                   ["VarPointsToLoc", "CallGraphLoc", "ReachableLoc", "VarPointsTo",
                    "InterProcAssign"]
                   andersenCtx
+
+-- andersenCtx1Desc :: ProgramDesc (Either String Int) (ContextSemiring2 Int)
+andersenCallSiteSensitiveDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
+                                             "FormalReturn", "ActualReturn", "ReachableInit", "SrcLoc"]
+                                ["VarPointsToLoc", "CallGraphLoc", "ReachableLoc", "VarPointsTo",
+                                 "InterProcAssign"]
+                                andersenCallSiteSensitive
+
 
 
 
 handleOptions :: Options -> IO ()
 handleOptions (Options ind outd s) =
-  if s then stepProgramDesc andersenCtxDesc ind outd
-  else runProgramDesc andersenCtxDesc ind outd
+  if s then stepProgramDesc andersenCallSiteSensitiveDesc ind outd
+  else runProgramDesc andersenCallSiteSensitiveDesc ind outd

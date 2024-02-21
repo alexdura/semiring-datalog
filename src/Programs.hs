@@ -1,4 +1,4 @@
-module Programs(andersen, andersenCtx) where
+module Programs(andersen, andersenCtx, andersenCallSiteSensitive) where
 
 import Eval
 import Datalog
@@ -42,6 +42,7 @@ andersen =
       varPointsTo = lit "VarPointsTo"
       locPointsTo = lit "LocPointsTo"
       reachable = lit "Reachable"
+      reachableInit = lit "ReachableInit"
       interProcAssign = lit "InterProcAssign"
 
       varPointsToLoc = lit "VarPointsToLoc"
@@ -76,6 +77,7 @@ andersen =
     [varPointsTo [to, heap]] += [load [to, base], varPointsTo [base, baseH], locPointsTo [baseH, heap]],
     [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
+    [reachable [callee]] += [reachableInit [callee]],
     [interProcAssign [to, from]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
     [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
     [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]],
@@ -85,8 +87,24 @@ andersen =
     ]
 
 
-andersenCtx1 :: Program a s
-andersenCtx1 =
+data GroundTerm1 = GInt Int
+                 | GString String
+                 | GCtx Int Int
+                 | GHeapCtx
+                 deriving (Show, Eq, Ord, Read)
+
+instance GroundTerm GroundTerm1 where
+  unparse = \case GInt i -> printf "%d" i
+                  GString s -> s
+                  GHeapCtx -> "*"
+                  GCtx c0 c1 -> printf "(%d, %d)" c0 c1
+  parse input = case fst . head . (readPrec_to_S parseGroundTerm 0) $ input of
+                  Left s -> GString s
+                  Right i -> GInt i
+
+
+andersenCallSiteSensitive :: Program GroundTerm1 Bool
+andersenCallSiteSensitive =
   let alloc = lit "Alloc"
       move = lit "Move"
       load = lit "Load"
@@ -103,6 +121,7 @@ andersenCtx1 =
       locPointsTo = lit "LocPointsTo"
       reachable = lit "Reachable"
       interProcAssign = lit "InterProcAssign"
+      reachableInit = lit "ReachableInit"
 
       varPointsToLoc = lit "VarPointsToLoc"
       srcLoc = lit "SrcLoc"
@@ -125,22 +144,43 @@ andersenCtx1 =
       f_heap = Datalog.var "f_heap"
       l_heap = Datalog.var "l_heap"
       c_heap = Datalog.var "c_heap"
+      ctx = Datalog.var "ctx"
+      hctx = Datalog.var "hctx"
+      baseHCtx = Datalog.var "baseHCtx"
+      -- calleeCtx = Datalog.var "calleeCtx"
+      callerCtx = Datalog.var "callerCtx"
+      calleeCtx = Datalog.var "calleeCtx"
+      toCtx = Datalog.var "toCtx"
+      fromCtx = Datalog.var "fromCtx"
 
+      initialCtx = GCtx 0 0
+      merge [GInt c,
+             GCtx callerCtx0 callerCtx1] = GCtx c callerCtx0
 
+      record [GInt heap, GCtx ctx0 ctx1] = GHeapCtx
 
   in
     Program [
-    [varPointsTo [var, heap]] += [reachable [f], alloc [var, heap, f]],
-    [varPointsTo [to, heap]] += [move [to, from], varPointsTo [from, heap]],
-    [locPointsTo [baseH, heap]] += [store [base, from], varPointsTo [from, heap], varPointsTo [base, baseH]],
-    [varPointsTo [to, heap]] += [load [to, base], varPointsTo [base, baseH], locPointsTo [baseH, heap]],
-    [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
-    [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
-    [interProcAssign [to, from]] += [callGraph [c, f], formalArg[f, n, to], actualArg[c, n, from]],
-    [interProcAssign [to, from]] += [callGraph [c, f], formalReturn[f, from], actualReturn [c, to]],
-    [varPointsTo [to, heap]] += [interProcAssign [to, from], varPointsTo[from, heap]],
+    [varPointsTo [var, ctx, heap, expr record [heap, ctx]]] += [reachable [f, ctx], alloc [var, heap, f]],
 
-    [varPointsToLoc [f_to, l_to, c_to, f_heap, l_heap, c_heap]] += [varPointsTo[to, heap],
+    [varPointsTo [to, ctx, heap, hctx]] += [move [to, from], varPointsTo [from, ctx, heap, hctx]],
+
+    [locPointsTo [baseH, baseHCtx, heap, hctx]] += [store [base, from], varPointsTo [from, ctx, heap, hctx], varPointsTo [base, ctx, baseH, baseHCtx]],
+
+    [varPointsTo [to, ctx, heap, hctx]] += [load [to, base], varPointsTo [base, ctx, baseH, baseHCtx], locPointsTo [baseH, baseHCtx, heap, hctx]],
+
+    -- [reachable [callee, calleeCtx], callGraph[c, callerCtx, callee, calleeCtx]] += [vcall [base, c, caller], reachable [caller, callerCtx], varPointsTo[base, callerCtx, callee, hctx]],
+
+    [reachable [callee, Datalog.expr merge [c, callerCtx]],
+     callGraph[c, callerCtx, callee, Datalog.expr merge [c, callerCtx]]] += [call[callee, c, f], reachable [f, callerCtx]],
+
+    [reachable [callee, cst initialCtx]] += [reachableInit [callee]],
+
+    [interProcAssign [to, calleeCtx, from, callerCtx]] += [callGraph [c, callerCtx, f, calleeCtx], formalArg[f, n, to], actualArg[c, n, from]],
+    [interProcAssign [to, callerCtx, from, calleeCtx]] += [callGraph [c, callerCtx, f, calleeCtx], formalReturn[f, from], actualReturn [c, to]],
+    [varPointsTo [to, toCtx, heap, hctx]] += [interProcAssign [to, toCtx, from, fromCtx], varPointsTo[from, fromCtx, heap, hctx]],
+
+    [varPointsToLoc [f_to, l_to, c_to, f_heap, l_heap, c_heap]] += [varPointsTo[to, ctx, heap, hctx],
                                                                     srcLoc[to, f_to, l_to, c_to],
                                                                     srcLoc[heap, f_heap, l_heap, c_heap]]
     ]
@@ -169,6 +209,7 @@ andersenCtx =
       callGraphLoc = lit "CallGraphLoc"
       reachableLoc = lit "ReachableLoc"
       reachableDebug = lit "ReachableDebug"
+      reachableInit = lit "ReachableInit"
 
       srcLoc = lit "SrcLoc"
 
@@ -216,6 +257,7 @@ andersenCtx =
     -- [reachable [callee], callGraph[c, callee]] += [vcall [base, c, caller], reachable [caller], varPointsTo[base, callee]],
 
     [reachable [callee], callGraph[c, callee]] += [call[callee, c, f], reachable [f]],
+    [reachable [callee]] += [reachableInit [callee]],
 
     [reachableDebug [c, callee]] += [call[callee, c, f], reachable[f]],
 

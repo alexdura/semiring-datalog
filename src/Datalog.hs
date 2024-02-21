@@ -1,6 +1,6 @@
 module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (+=),
                 (+=|), (|.),
-                var, cst, lit, val, prettyProgram) where
+                var, cst, lit, val, expr, prettyProgram) where
 
 
 import Data.List
@@ -51,6 +51,9 @@ cst = Constant
 
 var :: String -> Term a s
 var = Variable
+
+expr :: ([a] -> a) -> [Term a s] -> Term a s
+expr f ts = Expr ts f
 
 withTrace :: Trace a s -> [Atom a s] -> [Atom a s] -> Clause a s
 withTrace trace body = \head -> Clause head body trace

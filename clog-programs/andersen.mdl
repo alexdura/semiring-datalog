@@ -60,7 +60,7 @@ OUTPUT('FormalArg, "FormalArg.csv", "csv").
 OUTPUT('ActualArg, "ActualArg.csv", "csv").
 OUTPUT('FormalReturn, "FormalReturn.csv", "csv").
 OUTPUT('ActualReturn, "ActualReturn.csv", "csv").
-OUTPUT('ReachableInit, "Reachable.csv", "csv").
+OUTPUT('ReachableInit, "ReachableInit.csv", "csv").
 
 
 SrcLoc(n, f, l, c) :- Node(n), f = c_src_file(n), l = c_src_line_start(n), c = c_src_col_start(n).
