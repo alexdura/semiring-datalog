@@ -30,14 +30,14 @@ immediateConsequence c ctx =
 
 applyTrace :: Trace a s -> (Binding a, s) -> s
 applyTrace (Trace ts f) (b, v) =
-  let args = map (\case (Variable name) -> b Map.! name
+  let args = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                         (Constant c) -> c) ts
   in f args v
 
 insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -> Context a s
 insertAtom (Literal p ts _) (b, v) ctx =
   let rel = Map.findWithDefault Map.empty p ctx
-      tpl = map (\case (Variable name) -> b Map.! name
+      tpl = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                        (Constant c) -> c
                        (Expr opds f) -> evalExpr b opds f) ts
       rel' = Map.insertWith (Semiring.+) tpl v rel
@@ -51,15 +51,17 @@ insertAtoms at bs ctx = foldr (insertAtom at) ctx bs
 immediateConsequence' :: (Eq a, Eq s, Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
 immediateConsequence' _ [] (b, v) = [(b, v)]
 immediateConsequence' ctx (a:as) (b, v) =
-  let bindingsNext = case a of Literal _ _ _-> lookupLiteral ctx a b
+  let bindingsNext = case a of Literal {} -> lookupLiteral ctx a b
                                Value s -> [(b, s)]
                                f@(Function _ _) -> [(b, applyFunction b f)]
   in concatMap (immediateConsequence' ctx as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
 
 applyFunction :: Binding a -> Atom a s -> s
 applyFunction b (Function ts f) =
-  let args = map (\case (Variable name) -> b Map.! name
-                        (Constant c) -> c) ts
+  let args = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
+                        (Constant c) -> c
+                        (Expr _ _) -> error "No Expr in Function") ts
+
   in f args
 
 lookupTerm :: Eq a => Binding a -> (Term a s, a) -> Maybe (Binding a)
@@ -70,7 +72,7 @@ lookupTerm b (t, k) = case t of (Variable name) -> case Map.lookup name b of
                                 (Expr opds f) -> if evalExpr b opds f == k then Just b else Nothing
 
 evalExpr :: Binding a -> [Term a b] -> ([a] -> a) -> a
-evalExpr b opds f = f $ map (\case (Variable name) -> b Map.! name
+evalExpr b opds f = f $ map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                                    (Constant c) -> c
                                    (Expr opds' f') -> evalExpr b opds' f') opds
 

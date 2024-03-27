@@ -1,16 +1,27 @@
 MemAllocExpr(e, e) :- e <: malloc(..) :>.
 MemAllocExpr(e, alloc) :- e <: ($t) $e :>, MemAllocExpr($e, alloc).
-MemAllocExpr(e, e) :- e <: &$f :>.
+MemAllocExpr(e, e) :- e <: &$f :>, !FunPtrExpr(e, _).
+
+FunPtrExpr($f, $func) :- <: $f :>, $func = c_decl($f), $func != undef,  <: $t $func (..) {..} :>.
+FunPtrExpr(e, $func) :- e <: &$f :>, $func = c_decl($f), $func != undef, <: $t $func (..) {..} :>.
 
 Alloc(var, heap, f), Node(var), Node(heap), Node(f) :- <: $v = $e :>, MemAllocExpr($e, heap), var = c_decl($v), node_to_id(var) != 0, f = c_enclosing_function($v).
 Alloc($v, heap, f), Node($v), Node(heap), Node(f) :- <: $t $v = $e :>, MemAllocExpr($e, heap), f = c_enclosing_function($v).
+
+FunPtr(var, func, f), Node(var), Node(func), Node(f) :- <: $v = $e :>, var = c_decl($v), FunPtrExpr($e, func), f = c_enclosing_function($e).
+
 Move(to, from), Node(to), Node(from) :- <: $to = $from :>, to = c_decl($to), node_to_id(to) != 0, from = c_decl($from), node_to_id(from) != 0.
 Load(to, base), Node(to), Node(base) :- <: $to = *$base :>, to = c_decl($to), node_to_id(to) != 0, base = c_decl($base), node_to_id(base) != 0.
 Load($to, base), Node($to), Node(base) :- <: $t $to = *$base :>, base = c_decl($base), node_to_id(base) != 0.
 Store(base, from), Node(base), Node(from) :- <: *$base = $from :>, base = c_decl($base), node_to_id(base) != 0, from = c_decl($from), node_to_id(from) != 0.
 Call($callee_def, c, f), Node($callee_def), Node(c), Node(f) :- c <: $callee(..) :>, $callee_def = c_decl($callee), node_to_id($callee_def) != 0, <: $t $f(..) {..} :>, $f == $callee_def,
                       f = c_enclosing_function(c).
-VCall(base, c, f), Node(base), Node(c), Node(f) :- c <: $base(..) :>, base = c_decl($base), node_to_id(base) != 0, f = c_enclosing_function(c).
+
+IsFunDefOrDecl($f) :- <: $t $f(..) :>.
+IsFunDefOrDecl($f) :- <: $t $f(..) { .. } :>.
+
+VCall(base, c, f), Node(base), Node(c), Node(f) :- c <: $base(..) :>, base = c_decl($base), base != undef,
+                                                   inline !IsFunDefOrDecl(base),  f = c_enclosing_function(c).
 
 FormalArg($f, n, $arg), Node($f), Node($arg) :- <: $r $f(.., $t $arg, ..) { .. } :>, n = c_index($arg).
 ActualArg(c, n, arg), Node(c), Node(arg) :- c <: $f(.., $arg, ..) :>, arg = c_decl($arg), node_to_id(arg) != 0, n = c_index($arg).
@@ -19,32 +30,32 @@ ActualReturn($c, v), Node($c), Node(v) :- <: $r = $c :>, $c <: $f (..) :> , v = 
 
 
 // VarPointsTo(var, heap) ← Reachable(meth), Alloc(var, heap, meth).
-// VarPointsTo(var, heap) :- Reachable(f), Alloc(var, heap, f).
+VarPointsTo(var, heap) :- Reachable(f), Alloc(var, heap, f).
 
 // VarPointsTo(to, heap) ← Move(to, from), VarPointsTo(from, heap).
-// VarPointsTo(to, heap) :- Move(to, from), VarPointsTo(from, heap).
+VarPointsTo(to, heap) :- Move(to, from), VarPointsTo(from, heap).
 
 // FldPointsTo(baseH, ﬂd, heap) ← Store(base, ﬂd, from), VarPointsTo(from, heap), VarPointsTo(base, baseH ).
-// LocPointsTo(baseH, heap) :- Store(base, from), VarPointsTo(from, heap), VarPointsTo(base, baseH).
+LocPointsTo(baseH, heap) :- Store(base, from), VarPointsTo(from, heap), VarPointsTo(base, baseH).
 
 // VarPointsTo(to, heap) ← Load(to, base, ﬂd), VarPointsTo(base, baseH ), FldPointsTo(baseH, ﬂd, heap).
-// VarPointsTo(to, heap) :- Load(to, base), VarPointsTo(base, baseH), LocPointsTo(baseH, heap).
+VarPointsTo(to, heap) :- Load(to, base), VarPointsTo(base, baseH), LocPointsTo(baseH, heap).
 
 // Reachable(toMeth), VarPointsTo(this, heap), CallGraph(invo, toMeth) ←
 //   VCall(base, sig, invo, inMeth), Reachable(inMeth), VarPointsTo(base, heap), HeapType(heap, heapT ), Lookup(heapT, sig, toMeth), ThisVar(toMeth, this).
-// Reachable(callee), CallGraph(c, callee) :-
-//  VCall(base, c, caller), Reachable(caller), VarPointsTo(base, callee).
-// Reachable(callee), CallGraph(c, callee) :-
-//  Call(callee, c, f), Reachable(f).
+Reachable(callee), CallGraph(c, callee) :-
+ VCall(base, c, caller), Reachable(caller), VarPointsTo(base, callee).
+Reachable(callee), CallGraph(c, callee) :-
+ Call(callee, c, f), Reachable(f).
 
 // InterProcAssign(to, from) ← CallGraph(invo, meth), FormalArg(meth, n, to), ActualArg(invo, n, from).
-// InterProcAssign(to, from) :- CallGraph(c, f), FormalArg(f, n, to), ActualArg(c, n, from).
+InterProcAssign(to, from) :- CallGraph(c, f), FormalArg(f, n, to), ActualArg(c, n, from).
 
 // InterProcAssign(to, from) ← CallGraph(invo, meth), FormalReturn(meth, from), ActualReturn(invo, to).
-// InterProcAssign(to, from) :- CallGraph(c, f), FormalReturn(f, from), ActualReturn(c, to).
+InterProcAssign(to, from) :- CallGraph(c, f), FormalReturn(f, from), ActualReturn(c, to).
 
 // VarPointsTo(to, heap) ← InterProcAssign(to, from), VarPointsTo(from, heap).
-// VarPointsTo(to, heap) :- InterProcAssign(to, from), VarPointsTo(from, heap).
+VarPointsTo(to, heap) :- InterProcAssign(to, from), VarPointsTo(from, heap).
 
 ReachableInit($f), Reachable($f), Node($f) :- <: int $f(..) {.. } :>, c_name($f) == "main".
 
@@ -61,7 +72,7 @@ OUTPUT('ActualArg, "ActualArg.csv", "csv").
 OUTPUT('FormalReturn, "FormalReturn.csv", "csv").
 OUTPUT('ActualReturn, "ActualReturn.csv", "csv").
 OUTPUT('ReachableInit, "ReachableInit.csv", "csv").
-
+OUTPUT('FunPtr, "FunPtr.csv", "csv").
 
 SrcLoc(n, f, l, c) :- Node(n), f = c_src_file(n), l = c_src_line_start(n), c = c_src_col_start(n).
 

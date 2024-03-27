@@ -116,6 +116,7 @@ andersenCallSiteSensitive =
       formalReturn = lit "FormalReturn"
       actualReturn = lit "ActualReturn"
       callGraph = lit "CallGraph"
+      funcPtr = lit "FunPtr"
 
       varPointsTo = lit "VarPointsTo"
       locPointsTo = lit "LocPointsTo"
@@ -137,6 +138,7 @@ andersenCallSiteSensitive =
       baseH = Datalog.var "baseH"
       caller = Datalog.var "caller"
       callee = Datalog.var "callee"
+      func = Datalog.var "func"
 
       f_to = Datalog.var "f_to"
       l_to = Datalog.var "l_to"
@@ -152,6 +154,8 @@ andersenCallSiteSensitive =
       calleeCtx = Datalog.var "calleeCtx"
       toCtx = Datalog.var "toCtx"
       fromCtx = Datalog.var "fromCtx"
+      _1 = Datalog.var "_1"
+      _2 = Datalog.var "_2"
 
       initialCtx = GCtx 0 0
       merge [GInt c,
@@ -162,6 +166,7 @@ andersenCallSiteSensitive =
   in
     Program [
     [varPointsTo [var, ctx, heap, expr record [heap, ctx]]] += [reachable [f, ctx], alloc [var, heap, f]],
+    [varPointsTo [var, ctx, func, expr record [func, ctx]]] += [reachable [f, ctx], funcPtr [var, func, f]],
 
     [varPointsTo [to, ctx, heap, hctx]] += [move [to, from], varPointsTo [from, ctx, heap, hctx]],
 
@@ -169,7 +174,9 @@ andersenCallSiteSensitive =
 
     [varPointsTo [to, ctx, heap, hctx]] += [load [to, base], varPointsTo [base, ctx, baseH, baseHCtx], locPointsTo [baseH, baseHCtx, heap, hctx]],
 
-    -- [reachable [callee, calleeCtx], callGraph[c, callerCtx, callee, calleeCtx]] += [vcall [base, c, caller], reachable [caller, callerCtx], varPointsTo[base, callerCtx, callee, hctx]],
+    [reachable [callee, Datalog.expr merge [c, callerCtx]],
+     callGraph[c, callerCtx, callee, Datalog.expr merge [c, callerCtx]]] +=
+      [vcall [base, c, caller], reachable [caller, callerCtx], varPointsTo[base, callerCtx, callee, hctx], funcPtr[_1, callee, _2]],
 
     [reachable [callee, Datalog.expr merge [c, callerCtx]],
      callGraph[c, callerCtx, callee, Datalog.expr merge [c, callerCtx]]] += [call[callee, c, f], reachable [f, callerCtx]],
