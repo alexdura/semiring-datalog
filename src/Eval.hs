@@ -25,14 +25,7 @@ emptyBinding = Map.empty
 immediateConsequence :: (Ord a, Eq s, Semiring s) => Clause a s -> Context a s -> Context a s
 immediateConsequence c ctx =
   let bindings = immediateConsequence' ctx c.body (emptyBinding, Semiring.one)
-      bindings' = (\b -> (fst b, applyTrace c.trace b)) <$> bindings
-  in foldr (\at -> insertAtoms at bindings') ctx c.heads
-
-applyTrace :: Trace a s -> (Binding a, s) -> s
-applyTrace (Trace ts f) (b, v) =
-  let args = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
-                        (Constant c) -> c) ts
-  in f args v
+  in foldr (\at -> insertAtoms at bindings) ctx c.heads
 
 insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -> Context a s
 insertAtom (Literal p ts _) (b, v) ctx =

@@ -1,5 +1,4 @@
 module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (+=),
-                (+=|), (|.),
                 var, cst, lit, val, expr, prettyProgram) where
 
 
@@ -9,7 +8,7 @@ data Program a b = Program [Clause a b]
 
 data Trace a b = Trace [Term a b] ([a] -> b -> b)
 
-data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b],  trace :: Trace a b}
+data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b]}
 
 data Atom a b = Literal Predicate [Term a b] (b -> b)
               | Value b
@@ -31,14 +30,14 @@ prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = show v
 prettyTerm (Expr ts _) = "expr(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
-prettyClause (Clause hs ts _) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
+prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
 
 prettyProgram (Program cs) = intercalate "\n" (map prettyClause cs)
 
 
 infix 0 +=
 (+=) :: [Atom a s] -> [Atom a s] -> Clause a s
-(+=) h b = Clause h b (Trace [] (const id))
+(+=) = Clause
 
 lit :: String -> [Term a s] -> Atom a s
 lit s ts  = Literal s ts id
@@ -55,14 +54,5 @@ var = Variable
 expr :: ([a] -> a) -> [Term a s] -> Term a s
 expr f ts = Expr ts f
 
-withTrace :: Trace a s -> [Atom a s] -> [Atom a s] -> Clause a s
-withTrace trace body = \head -> Clause head body trace
-
 clause :: [Atom a s] -> ([Atom a s] -> Clause a s) -> Clause a s
 clause head rest = rest head
-
-infix 1 |.
-(|.) = withTrace
-
-infix 0 +=|
-(+=|)= clause

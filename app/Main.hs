@@ -66,13 +66,6 @@ andersenDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "
                andersen
 
 
-andersenCtxDesc :: ProgramDesc (Either String Int) (ContextSemiring2 Int)
-andersenCtxDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
-                               "FormalReturn", "ActualReturn", "ReachableInit", "SrcLoc"]
-                  ["VarPointsToLoc", "CallGraphLoc", "ReachableLoc", "VarPointsTo",
-                   "InterProcAssign"]
-                  andersenCtx
-
 -- andersenCtx1Desc :: ProgramDesc (Either String Int) (ContextSemiring2 Int)
 andersenCallSiteSensitiveDesc = ProgramDesc ["Alloc", "Move", "Load", "Store", "Call", "VCall", "FormalArg", "ActualArg",
                                              "FormalReturn", "ActualReturn", "ReachableInit", "FunPtr", "SrcLoc"]
