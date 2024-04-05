@@ -29,6 +29,7 @@ library
       Datalog
       Eval
       Lib
+      ParentTree
       Programs
       Relation
       Saiga
