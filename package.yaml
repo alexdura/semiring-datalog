@@ -26,6 +26,7 @@ dependencies:
 - csv
 - optparse-applicative
 - filepath
+- parsec
 
 
 ghc-options:
