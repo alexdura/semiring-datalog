@@ -1,10 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Saiga(declAttr, localLookupAttr, prettyAttributeDef) where
+module Saiga(prettyAttributeDef, Expr(..), AttributeDef(..), (<?>),
+             (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not) where
 
-import Prelude (Show, Eq, Ord, Bool(..), Int, String, ($), (++), show, (>), flip)
+import Prelude hiding (otherwise, not)
 import Data.String ( IsString(..) )
-
+import PicoJava(AST(..))
 
 data Expr a = IVal Int
             | BVal Bool
@@ -59,7 +60,7 @@ prettyExpr _ Arg = "arg"
 prettyExpr _ Node = "node"
 
 
-data AttributeDef a = AttributeDef a (Expr a)
+data AttributeDef a = AttributeDef {attr::a, equation::(Expr a)}
   deriving (Eq, Show)
 
 prettyAttributeDef :: Show a => AttributeDef a -> String
@@ -95,11 +96,6 @@ infix 2 ===
 (===) l r = equal $ l <:> r <:> Nil
 
 
-
-hasKind :: Expr PicoJavaAttr
-hasKind = Node <.> Kind <?> nil
-
-
 otherwise :: Expr a
 otherwise = BVal True
 
@@ -111,80 +107,67 @@ isUnknown = Func "isUnknown"
 ifOK tExpr fExpr = IfElse (isUnknown tExpr) fExpr tExpr
 
 
--- attribute declarations
-data PicoJavaAttr = Decl
-                  | LocalLookup
-                  | Lookup
-                  | RemoteLookup
-                  | Kind
-                  | Child
-                  | Parent
-                  | Name
-                  | Superclass
-                  | Type
-                  deriving (Eq, Show)
+-- domain of values
+data Domain a = DInt Int
+              | DString String
+              | DBool Bool
+              | DNode (AST a)
+              | DList [Domain a]
 
-predefs = Func "predefs" Nil
-
--- attribute definitions - Figure 15
-declAttr = AttributeDef Decl $
-  let use = Child <?> (int 1)
-      name = Name <?> nil
-      decl = Decl <?> nil
-  in
-    guard [(hasKind === (SVal "Dot"), Node <.> use <.> decl), -- L1
-           (hasKind === (SVal "Use"), Node <.> Lookup <?> (n <.> name)), -- L2
-           (otherwise, SVal "UnknownDecl")] -- L3
-
-lookupAttr = AttributeDef Lookup $
-  let parent = Parent <?> nil
-      superclass = Superclass <?> nil
-      block = Child <?> (int 2)
-      decl = Decl <?> nil
-      typ = Type <?> nil
-      kind = Kind <?> nil
-      access = Child <?> (int 0)
-  in
-    guard [(hasKind === "Program", Node <.> LocalLookup <?> Arg), -- L4
-            (hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg)) -- L5
-                                  (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg))
-                                   Node <.> parent <.> Lookup <?> (Arg))),
-            (hasKind === "Use" <&&> (Node <.> parent <.> kind === "Dot"), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> (Arg)), -- L6
-            (isUnknown Node, "UnknownDecl"), -- L7
-            (otherwise, Node <.> parent <.> Lookup <?> (Arg))] -- L8
+-- context for attributes
+data AttributeCtx attr a = AttributeCtx {
+  lookup :: attr -> AttributeDef attr,
+  builtin :: attr -> Maybe (AST a -> Domain a -> Domain a),
+  func :: String -> Maybe (Domain a -> Domain a)
+  }
 
 
-localLookupAttr = AttributeDef LocalLookup $
-  let items = Child <?> (int 0)
-  in
-    guard [(hasKind === "Program", ifOK (Func "finddecl" Arg <:> (Node <.> items) <:> Nil)
-                                   (Func "finddecl" Arg <:> predefs <:> Nil)),
-           (hasKind === "Block", Func "finddecl" Arg <:> (Node <.> items) <:> Nil),
-           (otherwise, "UnknownDecl")]
+-- big-step semantics for attribute evaluation
+eval :: AttributeCtx attr a -- contex
+     -> Domain a -- argument value
+     -> AST a -- current node
+     -> Expr attr -- expression
+     -> Domain a
 
-remoteLookup = AttributeDef RemoteLookup $
-    let parent = Parent <?> nil
-        superclass = Superclass <?> nil
-        block = Child <?> (int 2)
-    in
-      guard [(hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg))
-                                   (IfElse (isUnknown (Node <.> parent <.> superclass)) "UnknownDecl"
-                                     (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg)) "UnknownDecl"))),
-             (otherwise, "UnknownDecl")]
+eval _ _ _ (IVal i) = DInt i
 
-superclassAttr = AttributeDef Superclass $
-  let use = Child <?> (int 1)
-      kind = Kind <?> (nil)
-      decl = Decl <?> (nil)
-  in
-    guard [(hasKind === "ClassDecl" <&&> not (isUnknown (Node <.> use)), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) "UknownClass"),
-           (otherwise, "UnknownClass")]
+eval _ _ _ (BVal b) = DBool b
 
-typeAttr = AttributeDef Type $
-  let decl = Decl <?> (nil)
-      access = Child <?> (int 0)
-      kind = Kind <?> (nil)
-  in
-    guard [(Node <.> kind === "ClassDecl", Node),
-           (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) ("UnknownClass")),
-           (otherwise, "UnknownClass")]
+eval _ _ _ (SVal s) = DString s
+
+eval ctx _ n Nil = DList []
+
+eval ctx arg n (Cons x xs) = let x' = (eval ctx arg n x) in
+  case (eval ctx arg n xs) of
+    DList xs' -> DList (x':xs')
+    _ -> error "Second Cons argument must be a list"
+
+eval ctx arg n (Head l) = case (eval ctx arg n l) of
+  DList (v:_) -> v
+  _ -> error "Head operation defined only for non-empty lists"
+
+eval ctx arg n (Tail l) = case (eval ctx arg n l) of
+  DList (_:vs) -> DList vs
+  _ -> error "Tail operation defined only for non-empty lists."
+
+eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
+  (DBool True) -> eval ctx arg n t
+  (DBool False) -> eval ctx arg n f
+  _ -> error "If condintion must evaluate to a boolean value."
+
+eval _ arg _ (Arg) = arg
+
+eval ctx arg n (Func name e) =
+  let arg' = eval ctx arg n e in
+  case ctx.func name of
+    Just f -> f arg'
+    Nothing -> error $ "No builtin function " ++ name
+
+eval ctx argb n (Attr b attr arg) =
+  let arg' = eval ctx argb n arg
+      b' = eval ctx argb n b in
+    case b' of
+      DNode b'' -> case ctx.builtin attr of
+        Just f -> f b'' arg'
+        Nothing -> eval ctx arg' b'' (ctx.lookup attr).equation
+      _ -> error "Only AST nodes have attributes."

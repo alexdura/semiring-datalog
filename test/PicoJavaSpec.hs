@@ -5,8 +5,8 @@ import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.HUnit
 
 
-resultToString = \case Left err -> show err
-                       Right ast -> pretty ast
+-- resultToString = \case Left err -> show err
+--                        Right ast -> pretty ast
 
 
 picoJavaTests = testGroup "PicoJava tests" [
@@ -26,10 +26,17 @@ picoJavaTests = testGroup "PicoJava tests" [
 
     testCase "Parse Access" $ parseAccess "a" @?= Right (AST {kind = "Use", token = "a", children = []}),
 
-    testCase "Parse Block" $ parseBlock "{ X x; x = y; }" @?= Right (AST {kind = "Use", token = "a", children = []}),
+    testCase "Parse Block" $ parseBlock "{ X x; x = y; }" @?= Right (AST {kind = "Block", token = "",
+                                                                          children = [AST {kind = "VarDecl", token = "x",
+                                                                                           children = [AST {kind = "Use", token = "X", children = []}]},
+                                                                                      AST {kind = "Stmt", token = "",
+                                                                                           children = [AST {kind = "Use", token = "x", children = []},
+                                                                                                       AST {kind = "Use", token = "y", children = []}]}]}),
 
 
-    testCase "Parse Program" $  resultToString (parseProgram program1) @?= ""
+
+    testCase "Parse Program" $  parseProgram program1 @?= expectedProgram1
+
   ]
 
 program1 =
@@ -45,3 +52,34 @@ program1 =
   \   b.y = b.x; \n\
   \ }\n\
   \ }"
+
+expectedProgram1 = Right (AST {kind = "Program", token = "",
+                               children = [AST {kind = "Class", token = "A",
+                                                children = [AST {kind = "UnknownClass", token = "", children = []},
+                                                            AST {kind = "Block", token = "",
+                                                                 children = [AST {kind = "VarDecl", token = "y",
+                                                                                  children = [AST {kind = "Use", token = "boolean", children = []}]},
+                                                                             AST {kind = "VarDecl", token = "a",
+                                                                                  children = [AST {kind = "Use", token = "AA", children = []}]},
+                                                                             AST {kind = "Stmt", token = "",
+                                                                                  children = [AST {kind = "Use", token = "y", children = []},
+                                                                                              AST {kind = "Dot", token = ".",
+                                                                                                   children = [AST {kind = "Use", token = "a", children = []},
+                                                                                                               AST {kind = "Use", token = "x", children = []}]}]},
+                                                                             AST {kind = "Class", token = "AA",
+                                                                                  children = [AST {kind = "UnknownClass", token = "", children = []},
+                                                                                              AST {kind = "Block", token = "",
+                                                                                                   children = [AST {kind = "VarDecl", token = "x",
+                                                                                                                    children = [AST {kind = "Use", token = "boolean", children = []}]}]}]},
+                                                                             AST {kind = "Class", token = "BB",
+                                                                                  children = [AST {kind = "Use", token = "AA", children = []},
+                                                                                              AST {kind = "Block", token = "",
+                                                                                                   children = [AST {kind = "VarDecl", token = "b",
+                                                                                                                    children = [AST {kind = "Use", token = "BB", children = []}]},
+                                                                                                               AST {kind = "Stmt", token = "",
+                                                                                                                    children = [AST {kind = "Dot", token = ".",
+                                                                                                                                     children = [AST {kind = "Use", token = "b", children = []},
+                                                                                                                                                 AST {kind = "Use", token = "y", children = []}]},
+                                                                                                                                AST {kind = "Dot", token = ".",
+                                                                                                                                     children = [AST {kind = "Use", token = "b", children = []},
+                                                                                                                                                 AST {kind = "Use", token = "x", children = []}]}]}]}]}]}]}]})

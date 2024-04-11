@@ -4,23 +4,6 @@ import Text.Parsec
 import Text.Parsec.Token as P
 import Text.Parsec.Language (javaStyle)
 
--- data Program = Program [Item]
---              deriving (Eq, Show)
-
--- data Item = VarDecl Access Name
---           | ClassDecl Name (Maybe Name) [Item]
---           | Stmt Access Exp
---           deriving (Eq, Show)
-
--- data Exp = BoolLit Bool
---          | AccessExp Access
---          deriving (Eq, Show)
-
-
--- data Access = Use Name
---             | Dot Access Name
---             deriving (Eq, Show)
-
 data AST a = AST {kind::a, token::String, children::[AST a]} deriving (Eq, Show)
 
 pretty :: Show a => AST a -> String
@@ -28,7 +11,6 @@ pretty = prettyIndent 0
 
 prettyIndent :: Show a => Int -> AST a -> String
 prettyIndent n node = replicate n '\t' ++ show node.kind ++ " \"" ++ node.token ++ "\"\n" ++ concatMap (prettyIndent (n + 1)) node.children
-
 
 unknonwnClass = AST "UnknownClass" "" []
 
