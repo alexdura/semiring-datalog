@@ -19,7 +19,7 @@ prettyIndent n node = replicate n '\t' ++ show node.kind ++ " \"" ++ node.token 
 
 
 -- parsing
-unknonwnClass = AST "UnknownClass" "" []
+unknonwnClass = AST "UnknownClass" "_unknown_" []
 
 lexer = P.makeTokenParser javaStyle
 

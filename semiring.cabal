@@ -95,6 +95,7 @@ test-suite semiring-test
       ContextSpec
       EvalSpec
       PicoJavaSpec
+      SaigaPicoJavaSpec
       Paths_semiring
   autogen-modules:
       Paths_semiring

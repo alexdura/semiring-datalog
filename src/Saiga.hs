@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Saiga(prettyAttributeDef, Expr(..), AttributeDef(..), (<?>),
-             (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not) where
+             (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not,
+             Domain(..), AttributeCtx(..), eval) where
 
 import Prelude hiding (otherwise, not)
 import Data.String ( IsString(..) )
@@ -113,6 +114,7 @@ data Domain a = DInt Int
               | DBool Bool
               | DNode (AST a)
               | DList [Domain a]
+              deriving (Show, Eq)
 
 -- context for attributes
 data AttributeCtx attr a = AttributeCtx {
@@ -135,7 +137,11 @@ eval _ _ _ (BVal b) = DBool b
 
 eval _ _ _ (SVal s) = DString s
 
-eval ctx _ n Nil = DList []
+eval _ _ _ Nil = DList []
+
+eval _ arg _ (Arg) = arg
+
+eval _ _ n (Node) = DNode n
 
 eval ctx arg n (Cons x xs) = let x' = (eval ctx arg n x) in
   case (eval ctx arg n xs) of
@@ -154,8 +160,6 @@ eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
   (DBool True) -> eval ctx arg n t
   (DBool False) -> eval ctx arg n f
   _ -> error "If condintion must evaluate to a boolean value."
-
-eval _ arg _ (Arg) = arg
 
 eval ctx arg n (Func name e) =
   let arg' = eval ctx arg n e in

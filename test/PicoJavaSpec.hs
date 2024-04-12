@@ -40,7 +40,7 @@ picoJavaTests = testGroup "PicoJava tests" [
     testCase "Nuber program" $  parseAndNumber program2 @?= Right (
       AST {kind = ("Program",10), token = "", children = [
         AST {kind = ("Class",9), token = "A", children = [
-                AST {kind = ("UnknownClass",0), token = "", children = []},
+                AST {kind = ("UnknownClass",0), token = "_unknown_", children = []},
                 AST {kind = ("Block",8), token = "", children = [
                         AST {kind = ("VarDecl",2), token = "x", children = [
                                 AST {kind = ("Use",1), token = "bool", children = []}]},
@@ -53,11 +53,11 @@ picoJavaTests = testGroup "PicoJava tests" [
     testCase "Parent map" $ parseAndComputeParentMap program3 @?= Right
     (Map.fromList [
         (AST {kind = "Block", token = "", children = []},
-         AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "", children = []},AST {kind = "Block", token = "", children = []}]}),
-        (AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "", children = []},AST {kind = "Block", token = "", children = []}]},
-         AST {kind = "Program", token = "", children = [AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "", children = []},AST {kind = "Block", token = "", children = []}]}]}),
-        (AST {kind = "UnknownClass", token = "", children = []},
-         AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "", children = []},AST {kind = "Block", token = "", children = []}]})])
+         AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},AST {kind = "Block", token = "", children = []}]}),
+        (AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},AST {kind = "Block", token = "", children = []}]},
+         AST {kind = "Program", token = "", children = [AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},AST {kind = "Block", token = "", children = []}]}]}),
+        (AST {kind = "UnknownClass", token = "_unknown_", children = []},
+         AST {kind = "Class", token = "A", children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},AST {kind = "Block", token = "", children = []}]})])
   ]
 
 parseAndNumber p = parseProgram p >>= (return . numberNodes)
@@ -85,7 +85,7 @@ program3 = "class A {}"
 
 expectedProgram1 = Right (AST {kind = "Program", token = "",
                                children = [AST {kind = "Class", token = "A",
-                                                children = [AST {kind = "UnknownClass", token = "", children = []},
+                                                children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},
                                                             AST {kind = "Block", token = "",
                                                                  children = [AST {kind = "VarDecl", token = "y",
                                                                                   children = [AST {kind = "Use", token = "boolean", children = []}]},
@@ -97,7 +97,7 @@ expectedProgram1 = Right (AST {kind = "Program", token = "",
                                                                                                    children = [AST {kind = "Use", token = "a", children = []},
                                                                                                                AST {kind = "Use", token = "x", children = []}]}]},
                                                                              AST {kind = "Class", token = "AA",
-                                                                                  children = [AST {kind = "UnknownClass", token = "", children = []},
+                                                                                  children = [AST {kind = "UnknownClass", token = "_unknown_", children = []},
                                                                                               AST {kind = "Block", token = "",
                                                                                                    children = [AST {kind = "VarDecl", token = "x",
                                                                                                                     children = [AST {kind = "Use", token = "boolean", children = []}]}]}]},
