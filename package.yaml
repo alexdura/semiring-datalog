@@ -27,6 +27,7 @@ dependencies:
 - optparse-applicative
 - filepath
 - parsec
+- mtl
 
 
 ghc-options:

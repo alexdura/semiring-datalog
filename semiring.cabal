@@ -54,6 +54,7 @@ library
     , containers
     , csv
     , filepath
+    , mtl
     , optparse-applicative
     , parsec
     , semirings
@@ -80,6 +81,7 @@ executable semiring-exe
     , containers
     , csv
     , filepath
+    , mtl
     , optparse-applicative
     , parsec
     , semiring
@@ -111,6 +113,7 @@ test-suite semiring-test
     , containers
     , csv
     , filepath
+    , mtl
     , optparse-applicative
     , parsec
     , semiring
