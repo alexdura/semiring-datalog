@@ -7,6 +7,7 @@ module Saiga(prettyAttributeDef, Expr(..), AttributeDef(..), (<?>),
 import Prelude hiding (otherwise, not)
 import Data.String ( IsString(..) )
 import PicoJava(AST(..))
+import GHC.Stack (errorWithStackTrace)
 
 data Expr a = IVal Int
             | BVal Bool
@@ -161,7 +162,7 @@ eval ctx arg n (Tail l) =
 eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
   (DBool True) -> eval ctx arg n t
   (DBool False) -> eval ctx arg n f
-  _ -> error "If condintion must evaluate to a boolean value."
+  r -> errorWithStackTrace $ "If condition must evaluate to a boolean value." ++ show r
 
 eval ctx arg n (Func name e) =
   let arg' = eval ctx arg n e in
