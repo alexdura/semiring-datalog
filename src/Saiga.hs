@@ -4,10 +4,12 @@ module Saiga(prettyAttributeDef, Expr(..), AttributeDef(..), (<?>),
              (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not,
              Domain(..), AttributeCtx(..), eval) where
 
-import Prelude hiding (otherwise, not)
+import Prelude hiding (otherwise, not, log)
 import Data.String ( IsString(..) )
 import PicoJava(AST(..))
 import GHC.Stack (errorWithStackTrace)
+import Control.Monad.Writer hiding (guard)
+import Control.Monad.Except hiding (guard)
 
 data Expr a = IVal Int
             | BVal Bool
@@ -71,9 +73,6 @@ prettyAttributeDef (AttributeDef attr e) = "node" ++ "." ++ show attr ++ "(" ++ 
 int = IVal
 bool = BVal
 nil = Nil
-head = Head
-tail = Tail
-n = Node
 
 
 infixr <:>
@@ -180,3 +179,87 @@ eval ctx argb n (Attr b attr arg) =
         Just f -> f b'' arg'
         Nothing -> eval ctx arg' b'' (ctx.lookup attr).equation
       _ -> error "Only AST nodes have attributes."
+
+
+
+
+data LogEntry attr a = LogEntry (Domain a) (AST a) (Expr attr) (Domain a)
+
+evalM :: AttributeCtx attr a -- context
+      -> Domain a -- argument value
+      -> AST a -- current node
+      -> Expr attr -- expression
+      -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+
+logRet :: Domain a -> AST a -> Expr attr -> Domain a -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logRet arg n e r = do
+  lift $ tell [LogEntry arg n e r]
+  return r
+
+
+logErr :: Domain a -> AST a -> Expr attr -> String -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logErr arg n e m = do
+  lift $ tell [LogEntry arg n e (DBool False)]
+  throwError m
+
+evalM _ arg n e@(IVal i) = logRet arg n e (DInt i)
+
+evalM _ arg n e@(BVal b) = logRet arg n e (DBool b)
+
+evalM _ arg n  e@(SVal s) = logRet arg n e (DString s)
+
+evalM _ arg n e@Nil = logRet arg n e (DList [])
+
+evalM _ arg n e@Arg = logRet arg n e arg
+
+evalM _ arg n e@Node = logRet arg n e (DNode n)
+
+evalM ctx arg n e@(Cons x xs) = do
+  x' <- evalM ctx arg n x
+  xs' <- evalM ctx arg n xs
+  case xs' of
+    r@(DList xs'') -> logRet arg n e (DList (x':xs''))
+    _ -> logErr arg n e $ "Second argument of Cons must be a a list."
+
+evalM ctx arg n e@(Head l) = do
+  l' <- evalM ctx arg n l
+  case l' of
+    DList (v:_) -> logRet arg n e v
+    _ -> logErr arg n e $ "Head operation defined only for non-empty lists."
+
+evalM ctx arg n e@(Tail l) = do
+  l' <- evalM ctx arg n l
+  case l' of
+    DList (_:vs) -> logRet arg n e (DList vs)
+    _ -> logErr arg n e $ "Tail operation defined only for non-empty lists."
+
+evalM ctx arg n e@(IfElse c t f) = do
+  c' <- evalM ctx arg n c
+  case c' of
+    (DBool True) -> evalM ctx arg n t
+    (DBool False) -> evalM ctx arg n f
+    r -> logErr arg n e $ "If condition must evalMuate to a boolean value."
+
+evalM ctx arg n expr@(Func name e) = do
+  arg' <- evalM ctx arg n e
+  case ctx.func name of
+    Just expr -> evalM ctx arg' n expr
+    _ -> case ctx.builtinFunc name of
+      Just f -> logRet arg n expr (f arg')
+      Nothing -> logErr arg n expr $ "No builtin function " ++ name
+
+evalM ctx argb n e@(Attr b attr arg) = do
+  arg' <- evalM ctx argb n arg
+  b' <- evalM ctx argb n b
+  case b' of
+    DNode b'' -> case ctx.builtin attr of
+      Just f -> logRet argb n e (f b'' arg')
+      Nothing -> evalM ctx arg' b'' (ctx.lookup attr).equation
+    _ -> logErr argb n e "Only AST nodes have attributes."
+
+
+-- evalWithLog :: AttributeCtx attr a -- context
+--             -> Domain a -- argument value
+--             -> AST a -- current node
+--             -> Expr attr -- expression
+--             ->
