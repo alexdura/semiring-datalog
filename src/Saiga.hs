@@ -120,12 +120,13 @@ data Domain a = DInt Int
 data AttributeCtx attr a = AttributeCtx {
   lookup :: attr -> AttributeDef attr,
   builtin :: attr -> Maybe (AST a -> Domain a -> Domain a),
-  func :: String -> Maybe (Domain a -> Domain a)
+  func :: String -> Maybe (Expr attr),
+  builtinFunc :: String -> Maybe (Domain a -> Domain a)
   }
 
 
 -- big-step semantics for attribute evaluation
-eval :: AttributeCtx attr a -- contex
+eval :: Show a => AttributeCtx attr a -- context
      -> Domain a -- argument value
      -> AST a -- current node
      -> Expr attr -- expression
@@ -148,13 +149,14 @@ eval ctx arg n (Cons x xs) = let x' = (eval ctx arg n x) in
     DList xs' -> DList (x':xs')
     _ -> error "Second Cons argument must be a list"
 
-eval ctx arg n (Head l) = case (eval ctx arg n l) of
+eval ctx arg n (Head l) = case eval ctx arg n l of
   DList (v:_) -> v
-  _ -> error "Head operation defined only for non-empty lists"
+  r -> error $ "Head operation defined only for non-empty lists." ++ show r
 
-eval ctx arg n (Tail l) = case (eval ctx arg n l) of
+eval ctx arg n (Tail l) =
+  case eval ctx arg n l  of
   DList (_:vs) -> DList vs
-  _ -> error "Tail operation defined only for non-empty lists."
+  r -> error $ "Tail operation defined only for non-empty lists." ++ show r
 
 eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
   (DBool True) -> eval ctx arg n t
@@ -163,9 +165,11 @@ eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
 
 eval ctx arg n (Func name e) =
   let arg' = eval ctx arg n e in
-  case ctx.func name of
-    Just f -> f arg'
-    Nothing -> error $ "No builtin function " ++ name
+    case ctx.func name of
+      Just expr -> eval ctx arg' n expr
+      _ -> case ctx.builtinFunc name of
+        Just f -> f arg'
+        Nothing -> error $ "No builtin function " ++ name
 
 eval ctx argb n (Attr b attr arg) =
   let arg' = eval ctx argb n arg

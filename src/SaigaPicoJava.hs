@@ -57,11 +57,11 @@ lookupAttr = AttributeDef Lookup $
 
 
 localLookupAttr = AttributeDef LocalLookup $
-  let items = Child <?> (int 0)
+  let items = Children <?> (Nil)
   in
-    guard [(hasKind === "Program", ifOK (Func "finddecl" Arg <:> (Node <.> items) <:> Nil)
-                                   (Func "finddecl" Arg <:> predefs <:> Nil)),
-           (hasKind === "Block", Func "finddecl" Arg <:> (Node <.> items) <:> Nil),
+    guard [(hasKind === "Program", ifOK (Func "finddecl" (Arg <:> (Node <.> items) <:> Nil))
+                                   (Func "finddecl" (Arg <:> predefs <:> Nil))),
+           (hasKind === "Block", Func "finddecl" (Arg <:> (Node <.> items) <:> Nil)),
            (otherwise, mkUnknown)]
 
 
@@ -128,11 +128,24 @@ picoJavaBuiltinAttrLookup ast attr =
       Children -> Just (\n -> const $ DList (DNode <$> n.children))
       _ -> Nothing
 
+
+findDeclExpr :: Expr PicoJavaAttr
+findDeclExpr =
+  let arg0 = Head Arg
+      arg1 = Head (Tail Arg)
+  in IfElse (arg1 === Nil) mkUnknown
+     (IfElse (arg0 === ((Head arg1) <.> Name <?> Nil)) (Head arg1) (Func "finddecl" (arg0 <:> (Tail arg1) <:> Nil)))
+
+picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
+picoJavaFunc name = case name of
+  "finddecl" -> Just findDeclExpr
+  _ -> Nothing
+
 picoJavaBuiltinFunc ::  String -> Maybe (Domain (String, Int) -> Domain (String, Int))
 picoJavaBuiltinFunc name = case name of
-  "finddecl" -> Just (\(DList [e, DList l]) -> if elem e l then e
-                                               else DNode unknown)
   "predefs" -> Just (\_ -> DList [DNode boolDecl])
-  "isUnknown" -> Just (\(DNode n) -> DBool $ n.token == "_unknown_")
+  "isUnknown" -> Just $ \case (DNode n) -> DBool $ n.token == "_unknown_"
+                              e -> error $ "Unexpected argument " ++ show e
   "mkUnknown" -> Just (\_ -> DNode unknown)
+  "eq" -> Just (\(DList [x, y]) -> DBool $ x == y)
   _ -> Nothing

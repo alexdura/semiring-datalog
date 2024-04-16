@@ -7,7 +7,7 @@ import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.HUnit
 
 saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
-  testCase "Parse program" $ parseAndNumber program1 @?=
+  testCase "Parse program 1" $ parseAndNumber program1 @?=
     AST {kind = ("Program",7), token = "", children = [
             AST {kind = ("Class",6), token = "A", children = [
                     AST {kind = ("UnknownClass",0), token = "_unknown_", children = []},
@@ -45,7 +45,16 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
         parent = Parent <?> Nil
         expr = Func "isUnknown" (Node <.> parent <.> parent <.> parent <.> parent)
     in
-      evalExpr ast path expr @?= DBool False
+      evalExpr ast path expr @?= DBool False,
+
+  testCase "Parse program 2" $ parseAndNumber program2 @?= program2Ast,
+
+  testCase "Local lookup 1" $
+    let ast = parseAndNumber program2
+        path = []
+        expr = Node <.> LocalLookup <?> (SVal "A")
+    in
+      evalExpr ast path expr @?= (DNode $ findNode ast [0])
   ]
 
 
@@ -58,7 +67,7 @@ nodeId (DNode (AST (_, i) _ _)) = i
 
 evalExpr ast path expr =
   let n = findNode ast path
-      ctx = AttributeCtx picoJavaAttrLookup (picoJavaBuiltinAttrLookup ast) picoJavaBuiltinFunc
+      ctx = AttributeCtx picoJavaAttrLookup (picoJavaBuiltinAttrLookup ast) picoJavaFunc picoJavaBuiltinFunc
   in eval ctx (DList []) n expr
 
 parseAndNumber s = case parseProgram s >>= (return . numberNodes) of
@@ -70,3 +79,16 @@ program1 = "class A { \n\
   \ boolean c; \n\
   \ A next; \n\
   \}"
+
+
+program2 = "class A {} \n\
+           \class B {}"
+
+program2Ast =
+  AST {kind = ("Program",6), token = "", children = [
+            AST {kind = ("Class",2), token = "A", children = [
+                    AST {kind = ("UnknownClass",0), token = "_unknown_", children = []},
+                    AST {kind = ("Block",1), token = "", children = []}]},
+            AST {kind = ("Class",5), token = "B", children = [
+                    AST {kind = ("UnknownClass",3), token = "_unknown_", children = []},
+                    AST {kind = ("Block",4), token = "", children = []}]}]}
