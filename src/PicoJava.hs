@@ -46,9 +46,9 @@ eq = lexer.reservedOp "="
 
 block = P.braces lexer $ AST "Block" "" <$> many item
 
-classDecl1 = (\n b -> AST "Class" n [unknonwnClass, b]) <$ (lexer.reserved "class") <*> name <*> block
+classDecl1 = (\n b -> AST "ClassDecl" n [unknonwnClass, b]) <$ (lexer.reserved "class") <*> name <*> block
 
-classDecl2 = (\n u b -> AST "Class" n [u, b])
+classDecl2 = (\n u b -> AST "ClassDecl" n [u, b])
   <$ lexer.reserved "class"
   <*> name
   <* lexer.reserved "extends"

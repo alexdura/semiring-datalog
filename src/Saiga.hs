@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Saiga(prettyAttributeDef, Expr(..), AttributeDef(..), (<?>),
+module Saiga(prettyAttributeDef, prettyExpr, Expr(..), AttributeDef(..), (<?>),
              (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not,
-             Domain(..), AttributeCtx(..), eval) where
+             Domain(..), prettyDomain, AttributeCtx(..), evalWithLog, LogEntry(..)) where
 
 import Prelude hiding (otherwise, not, log)
 import Data.String ( IsString(..) )
 import PicoJava(AST(..))
-import GHC.Stack (errorWithStackTrace)
 import Control.Monad.Writer hiding (guard)
 import Control.Monad.Except hiding (guard)
+import Data.List ( intercalate )
 
 data Expr a = IVal Int
             | BVal Bool
@@ -75,7 +75,7 @@ bool = BVal
 nil = Nil
 
 
-infixr <:>
+infixr 5 <:>
 (<:>) = Cons
 
 infixl 8 <.>
@@ -86,14 +86,14 @@ infixl 9 <?>
 (<?>) attr arg = \n -> Attr n attr arg
 
 
-infixl 8 <&&>
+infixr 3 <&&>
 (<&&>) l r = IfElse l (IfElse r (BVal True) (BVal False)) (BVal False)
 
 not e = IfElse e (BVal False) (BVal True)
 
 
 equal = Func "eq"
-infix 2 ===
+infix 4 ===
 (===) l r = equal $ l <:> r <:> Nil
 
 
@@ -116,6 +116,14 @@ data Domain a = DInt Int
               | DList [Domain a]
               deriving (Show, Eq)
 
+prettyDomain :: Show a => Domain a -> String
+prettyDomain (DInt n) = show n
+prettyDomain (DString s) = show s
+prettyDomain (DBool b) = show b
+prettyDomain (DNode n) = show n.kind
+prettyDomain (DList ds) = "[" ++ intercalate ", "  (prettyDomain <$> ds) ++ "]"
+
+
 -- context for attributes
 data AttributeCtx attr a = AttributeCtx {
   lookup :: attr -> AttributeDef attr,
@@ -123,64 +131,6 @@ data AttributeCtx attr a = AttributeCtx {
   func :: String -> Maybe (Expr attr),
   builtinFunc :: String -> Maybe (Domain a -> Domain a)
   }
-
-
--- big-step semantics for attribute evaluation
-eval :: Show a => AttributeCtx attr a -- context
-     -> Domain a -- argument value
-     -> AST a -- current node
-     -> Expr attr -- expression
-     -> Domain a
-
-eval _ _ _ (IVal i) = DInt i
-
-eval _ _ _ (BVal b) = DBool b
-
-eval _ _ _ (SVal s) = DString s
-
-eval _ _ _ Nil = DList []
-
-eval _ arg _ (Arg) = arg
-
-eval _ _ n (Node) = DNode n
-
-eval ctx arg n (Cons x xs) = let x' = (eval ctx arg n x) in
-  case (eval ctx arg n xs) of
-    DList xs' -> DList (x':xs')
-    _ -> error "Second Cons argument must be a list"
-
-eval ctx arg n (Head l) = case eval ctx arg n l of
-  DList (v:_) -> v
-  r -> error $ "Head operation defined only for non-empty lists." ++ show r
-
-eval ctx arg n (Tail l) =
-  case eval ctx arg n l  of
-  DList (_:vs) -> DList vs
-  r -> error $ "Tail operation defined only for non-empty lists." ++ show r
-
-eval ctx arg n (IfElse c t f) = case (eval ctx arg n c) of
-  (DBool True) -> eval ctx arg n t
-  (DBool False) -> eval ctx arg n f
-  r -> errorWithStackTrace $ "If condition must evaluate to a boolean value." ++ show r
-
-eval ctx arg n (Func name e) =
-  let arg' = eval ctx arg n e in
-    case ctx.func name of
-      Just expr -> eval ctx arg' n expr
-      _ -> case ctx.builtinFunc name of
-        Just f -> f arg'
-        Nothing -> error $ "No builtin function " ++ name
-
-eval ctx argb n (Attr b attr arg) =
-  let arg' = eval ctx argb n arg
-      b' = eval ctx argb n b in
-    case b' of
-      DNode b'' -> case ctx.builtin attr of
-        Just f -> f b'' arg'
-        Nothing -> eval ctx arg' b'' (ctx.lookup attr).equation
-      _ -> error "Only AST nodes have attributes."
-
-
 
 
 data LogEntry attr a = LogEntry (Domain a) (AST a) (Expr attr) (Domain a)
@@ -193,6 +143,12 @@ evalM :: AttributeCtx attr a -- context
 
 logRet :: Domain a -> AST a -> Expr attr -> Domain a -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
 logRet arg n e r = do
+  -- lift $ tell [LogEntry arg n e r]
+  return r
+
+
+logRetAttr :: Domain a -> AST a -> Expr attr -> Domain a -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logRetAttr arg n e r = do
   lift $ tell [LogEntry arg n e r]
   return r
 
@@ -253,13 +209,20 @@ evalM ctx argb n e@(Attr b attr arg) = do
   b' <- evalM ctx argb n b
   case b' of
     DNode b'' -> case ctx.builtin attr of
-      Just f -> logRet argb n e (f b'' arg')
-      Nothing -> evalM ctx arg' b'' (ctx.lookup attr).equation
+      Just f -> logRetAttr arg' b'' e (f b'' arg')
+      Nothing -> do
+        let eq = (ctx.lookup attr).equation
+        r <- evalM ctx arg' b'' eq
+        logRetAttr arg' b'' e r
     _ -> logErr argb n e "Only AST nodes have attributes."
 
 
--- evalWithLog :: AttributeCtx attr a -- context
---             -> Domain a -- argument value
---             -> AST a -- current node
---             -> Expr attr -- expression
---             ->
+evalWithLog :: AttributeCtx attr a -- context
+            -> Domain a -- argument value
+            -> AST a -- current node
+            -> Expr attr -- expression
+            -> (Either String (Domain a), [LogEntry attr a])
+
+evalWithLog ctx arg n e =
+  let w = runExceptT (evalM ctx arg n e) in
+    runWriter w

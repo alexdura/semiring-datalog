@@ -35,24 +35,27 @@ declAttr = AttributeDef Decl $
   in
     guard [(hasKind === (SVal "Dot"), Node <.> use <.> decl), -- L1
            (hasKind === (SVal "Use"), Node <.> Lookup <?> (Node <.> name)), -- L2
-           (otherwise, mkUnknown)] -- L3
+           (otherwise, mkUnknownDecl)] -- L3
 
 
 lookupAttr = AttributeDef Lookup $
   let parent = Parent <?> nil
       superclass = Superclass <?> nil
-      block = Child <?> (int 2)
+      block = Child <?> (int 1)
       decl = Decl <?> nil
       typ = Type <?> nil
       kind = Kind <?> nil
       access = Child <?> (int 0)
+      rhs = Child <?> (int 1)
   in
     guard [(hasKind === "Program", Node <.> LocalLookup <?> Arg), -- L4
             (hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg)) -- L5
                                   (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg))
                                    Node <.> parent <.> Lookup <?> (Arg))),
-            (hasKind === "Use" <&&> (Node <.> parent <.> kind === "Dot"), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> (Arg)), -- L6
-            (isUnknown Node, mkUnknown), -- L7
+            (hasKind === "Use" <&&>
+             (Node <.> parent <.> kind === "Dot") <&&>
+             (Node <.> parent <.> rhs === Node), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> (Arg)), -- L6
+            (isUnknown Node, mkUnknownDecl), -- L7
             (otherwise, Node <.> parent <.> Lookup <?> (Arg))] -- L8
 
 
@@ -62,18 +65,18 @@ localLookupAttr = AttributeDef LocalLookup $
     guard [(hasKind === "Program", ifOK (Func "finddecl" (Arg <:> (Node <.> items) <:> Nil))
                                    (Func "finddecl" (Arg <:> predefs <:> Nil))),
            (hasKind === "Block", Func "finddecl" (Arg <:> (Node <.> items) <:> Nil)),
-           (otherwise, mkUnknown)]
+           (otherwise, mkUnknownDecl)]
 
 
 remoteLookup = AttributeDef RemoteLookup $
     let parent = Parent <?> nil
         superclass = Superclass <?> nil
-        block = Child <?> (int 2)
+        block = Child <?> (int 1)
     in
       guard [(hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg))
-                                   (IfElse (isUnknown (Node <.> parent <.> superclass)) mkUnknown
-                                     (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg)) mkUnknown))),
-             (otherwise, mkUnknown)]
+                                   (IfElse (isUnknown (Node <.> parent <.> superclass)) mkUnknownDecl
+                                     (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg)) mkUnknownDecl))),
+             (otherwise, mkUnknownDecl)]
 
 
 superclassAttr = AttributeDef Superclass $
@@ -81,8 +84,8 @@ superclassAttr = AttributeDef Superclass $
       kind = Kind <?> (nil)
       decl = Decl <?> (nil)
   in
-    guard [(hasKind === "ClassDecl" <&&> not (isUnknown (Node <.> use)), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknown),
-           (otherwise, mkUnknown)]
+    guard [(hasKind === "ClassDecl" <&&> not (isUnknown (Node <.> use)), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknownClass),
+           (otherwise, mkUnknownClass)]
 
 
 typeAttr = AttributeDef Type $
@@ -91,8 +94,8 @@ typeAttr = AttributeDef Type $
       kind = Kind <?> (nil)
   in
     guard [(Node <.> kind === "ClassDecl", Node),
-           (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknown),
-           (otherwise, mkUnknown)]
+           (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknownClass),
+           (otherwise, mkUnknownClass)]
 
 picoJavaAttrLookup :: PicoJavaAttr -> AttributeDef PicoJavaAttr
 picoJavaAttrLookup attr = case attr of
@@ -107,10 +110,12 @@ picoJavaAttrLookup attr = case attr of
 
 type PicoJavaAST = AST (String, Int)
 
-unknown = AST ("unknown", 0) "_unknown_" []
-boolDecl = AST ("Class", -1) "bool" [AST ("Block", -2) "" []]
+unknownDecl = AST ("unknown", 0) "_unknown_" []
+unknownClass = AST ("ClassDecl", -3) "_unknown_" [unknownDecl, AST ("Block", -4) "" []]
+boolDecl = AST ("ClassDecl", -1) "bool" [AST ("Block", -2) "" []]
 
-mkUnknown = Func "mkUnknown" Nil
+mkUnknownDecl = Func "mkUnknownDecl" Nil
+mkUnknownClass = Func "mkUnknownClass" Nil
 
 picoJavaBuiltinAttrLookup :: PicoJavaAST
   -> PicoJavaAttr
@@ -121,8 +126,10 @@ picoJavaBuiltinAttrLookup ast attr =
     case attr of
       Parent -> Just (\n -> let p = Map.lookup n pm in
                               if isJust p then const (DNode $ fromJust p)
-                              else const $ DNode unknown)
-      Child -> Just (\n (DInt i) -> DNode $ n.children !! i)
+                              else const $ DNode unknownDecl)
+      Child -> Just (\n (DInt i) -> if i >= (length n.children)
+                                    then error $ "Index " ++ show i ++ " for node " ++ show n
+                                    else DNode $ n.children !! i)
       Kind -> Just (\n -> const $ DString $ fst n.kind)
       Name -> Just (\n -> const $ DString $ n.token)
       Children -> Just (\n -> const $ DList (DNode <$> n.children))
@@ -133,7 +140,7 @@ findDeclExpr :: Expr PicoJavaAttr
 findDeclExpr =
   let arg0 = Head Arg
       arg1 = Head (Tail Arg)
-  in IfElse (arg1 === Nil) mkUnknown
+  in IfElse (arg1 === Nil) mkUnknownDecl
      (IfElse (arg0 === ((Head arg1) <.> Name <?> Nil)) (Head arg1) (Func "finddecl" (arg0 <:> (Tail arg1) <:> Nil)))
 
 picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
@@ -146,6 +153,7 @@ picoJavaBuiltinFunc name = case name of
   "predefs" -> Just (\_ -> DList [DNode boolDecl])
   "isUnknown" -> Just $ \case (DNode n) -> DBool $ n.token == "_unknown_"
                               e -> error $ "Unexpected argument " ++ show e
-  "mkUnknown" -> Just (\_ -> DNode unknown)
+  "mkUnknownDecl" -> Just $ const $ DNode unknownDecl
+  "mkUnknownClass" -> Just $ const $ DNode unknownClass
   "eq" -> Just (\(DList [x, y]) -> DBool $ x == y)
   _ -> Nothing
