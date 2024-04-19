@@ -1,5 +1,5 @@
 module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (+=),
-                var, cst, lit, val, expr, prettyProgram) where
+                var, cst, lit, val, expr, prettyProgram, prettyAtom, prettyTerm) where
 
 
 import Data.List
@@ -20,11 +20,13 @@ data Term a b = Variable String
               | Expr [Term a b] ([a] -> a)
 
 
+
 type Predicate = String
 
 
 prettyAtom (Literal p ts _) = p ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 prettyAtom (Value b) = show b
+prettyAtom (Function ts _) = "__builtin_function__" ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = show v

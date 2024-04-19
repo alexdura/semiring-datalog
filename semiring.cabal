@@ -34,6 +34,7 @@ library
       Programs
       Relation
       Saiga
+      SaigaDatalog
       SaigaPicoJava
   other-modules:
       Paths_semiring
@@ -95,6 +96,7 @@ test-suite semiring-test
       ContextSpec
       EvalSpec
       PicoJavaSpec
+      SaigaDatalogSpec
       SaigaPicoJavaSpec
       Paths_semiring
   autogen-modules:
