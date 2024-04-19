@@ -7,6 +7,7 @@ import Data.Maybe
 import qualified Text.CSV as CSV
 import Control.Monad ( foldM )
 import System.IO
+import Control.Monad.State
 import Debug.Trace (trace)
 
 import Datalog
@@ -17,37 +18,47 @@ type Context a b = Map.Map Predicate (Relation a b)
 
 type Binding a = Map.Map String a
 
-
 emptyBinding :: Binding a
 emptyBinding = Map.empty
 
 
-immediateConsequence :: (Ord a, Eq s, Semiring s) => Clause a s -> Context a s -> Context a s
-immediateConsequence c ctx =
-  let bindings = immediateConsequence' ctx c.body (emptyBinding, Semiring.one)
-  in foldr (\at -> insertAtoms at bindings) ctx c.heads
+immediateConsequenceOld :: (Ord a, Eq s, Semiring s) => Clause a s -> Context a s -> Context a s
+immediateConsequenceOld c ctx = execState (immediateConsequence c) ctx
 
-insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> Context a s -> Context a s
-insertAtom (Literal p ts _) (b, v) ctx =
+immediateConsequence :: (Ord a, Eq s, Semiring s) => Clause a s -> State (Context a s) ()
+immediateConsequence c = do
+  bindings <- immediateConsequence' c.body (emptyBinding, Semiring.one)
+  forM_ c.heads (\at -> insertAtoms at bindings)
+
+insertAtom :: (Ord a, Semiring s) => Atom a s -> (Binding a, s) -> State (Context a s) ()
+insertAtom (Literal p ts _) (b, v) = do
+  ctx <- get
   let rel = Map.findWithDefault Map.empty p ctx
       tpl = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                        (Constant c) -> c
                        (Expr opds f) -> evalExpr b opds f) ts
       rel' = Map.insertWith (Semiring.+) tpl v rel
-  in Map.insert p rel' ctx
-insertAtom at _ _ = error "Unexpected head "
+  modify (Map.insert p rel')
+
+insertAtom _ _ = error "Unexpected head "
 
 
-insertAtoms :: (Ord a, Semiring s) => Atom a s -> [(Binding a, s)] -> Context a s -> Context a s
-insertAtoms at bs ctx = foldr (insertAtom at) ctx bs
+insertAtoms :: (Ord a, Semiring s) => Atom a s -> [(Binding a, s)] -> State (Context a s) ()
+insertAtoms at bs = forM_ bs (insertAtom at)
 
-immediateConsequence' :: (Eq a, Eq s, Semiring s) => Context a s -> [Atom a s] -> (Binding a, s) -> [(Binding a, s)]
-immediateConsequence' _ [] (b, v) = [(b, v)]
-immediateConsequence' ctx (a:as) (b, v) =
+immediateConsequence' :: (Eq a, Eq s, Semiring s)
+                      => [Atom a s]
+                      -> (Binding a, s)
+                      -> State (Context a s) [(Binding a, s)]
+immediateConsequence' [] (b, v) = return [(b, v)]
+immediateConsequence' (a:as) (b, v) = do
+  ctx <- get
   let bindingsNext = case a of Literal {} -> lookupLiteral ctx a b
                                Value s -> [(b, s)]
                                f@(Function _ _) -> [(b, applyFunction b f)]
-  in concatMap (immediateConsequence' ctx as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
+  r <- mapM (immediateConsequence' as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
+  return $ concat r
+
 
 applyFunction :: Binding a -> Atom a s -> s
 applyFunction b (Function ts f) =
@@ -78,7 +89,7 @@ lookupLiteral ctx (Literal p ts f) b =
 
 eval :: (Ord a, Semiring s, Eq s) => Program a s -> Context a s -> Context a s
 eval p@(Program cs) ctx =
-  let ctx' = foldr immediateConsequence ctx cs
+  let ctx' = execState (forM_ cs immediateConsequence) ctx
   in if ctx == ctx' then ctx
      else eval p ctx'
 
@@ -86,7 +97,7 @@ evalStep :: (Ord a, Show a, Semiring s, Eq s, Show s) => Program a s -> Context 
 evalStep p@(Program cs) ctx = do
   print $ show ctx
   _ <- getChar
-  let ctx' = foldr immediateConsequence ctx cs
+  let ctx' = execState (forM_ cs immediateConsequence) ctx
   if ctx == ctx' then return ctx
     else evalStep p ctx'
 

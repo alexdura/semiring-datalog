@@ -1,12 +1,10 @@
-module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, Trace(..), (+=),
+module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, (+=),
                 var, cst, lit, val, expr, prettyProgram, prettyAtom, prettyTerm) where
 
 
 import Data.List
 
 data Program a b = Program [Clause a b]
-
-data Trace a b = Trace [Term a b] ([a] -> b -> b)
 
 data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b]}
 
@@ -18,8 +16,7 @@ data Atom a b = Literal Predicate [Term a b] (b -> b)
 data Term a b = Variable String
               | Constant a
               | Expr [Term a b] ([a] -> a)
-
-
+              | Constructor [Term a b]
 
 type Predicate = String
 
