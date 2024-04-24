@@ -40,7 +40,7 @@ insertAtom (Literal p ts _) (b, v) = do
   let rel = Map.findWithDefault Map.empty p ctx.relations
   tpl <- mapM (evalExpr b) ts
   let rel' = Map.insertWith (Semiring.+) tpl v rel
-  put $ ctx { relations = Map.insert p rel' ctx.relations }
+  modify $ \ctx -> ctx { relations = Map.insert p rel' ctx.relations }
 
 insertAtom _ _ = error "Unexpected head "
 
@@ -77,6 +77,9 @@ lookupTerm b (t, k) = case t of
                         (Constant c) -> if c == k then return b else mzero
                         (Expr opds f) -> do
                           r <- lift $ evalExprs b opds f
+                          if r == k then return b else mzero
+                        (Fresh opds) -> do
+                          r <- lift $ makeFreshValue b opds
                           if r == k then return b else mzero
 
 evalExprs :: DatalogGroundTerm a => Binding a -> [Term a b] -> ([a] -> a) -> State (Context a s) a

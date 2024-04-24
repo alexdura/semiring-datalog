@@ -24,7 +24,10 @@ evalTests = testGroup "Unit tests" [
   testCase "eval 4" $ (query "path" r2) @?= [],
   testCase "eval 5" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))],
   testCase "eval 6" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))],
-  testCase "eval 7" $ (query "E" r5) @?= [([2],True),([3],True),([4],True)]
+  testCase "eval 7" $ (query "E" r5) @?= [([2],True),([3],True),([4],True)],
+  testCase "eval 8.1" $ (query "P" r6) @?= [([0], True), ([1], True)],
+  testCase "eval 8.2" $ (query "Q" r6) @?= [([1], True)],
+  testCase "eval 8.3" $ (query "R" r6) @?= [([10], True)]
   ]
 
 
@@ -113,3 +116,19 @@ p5 =
     [e[Expr [x, y] (\[x', y'] -> x' Prelude.+ y')]] += [k[x], k[y]]]
 
 r5 = eval p5 emptyContext
+
+
+p6 :: Program Integer Bool
+p6 =
+  let p = lit "P"
+      q = lit "Q"
+      r = lit "R"
+      x = var "x"
+  in
+    Program [
+    [p[Fresh [cst 2, cst 3]], p[Fresh [cst 4, cst 5]]] += [val True],
+    [q[Fresh [cst 4, cst 5]]] += [val True],
+    [r[cst 10]] += [q[Fresh [cst 4, cst 5]]]
+    ]
+
+r6 = eval p6 emptyContext
