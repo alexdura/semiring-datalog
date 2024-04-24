@@ -8,10 +8,12 @@ import Text.Printf
 import Data.Semiring
 
 
-instance GroundTerm (Either String Int) where
+instance DatalogGroundTerm (Either String Int) where
   unparse = \case Left s -> s
                   Right i -> printf "%d" i
   parse = fst . head . (readPrec_to_S parseGroundTerm 0)
+  firstIndex = Right 0
+  nextIndex (Right n) = Right (n Prelude.+ 1)
 
 parseAsInt :: ReadPrec (Either String Int)
 parseAsInt = do
@@ -93,7 +95,7 @@ data GroundTerm1 = GInt Int
                  | GHeapCtx
                  deriving (Show, Eq, Ord, Read)
 
-instance GroundTerm GroundTerm1 where
+instance DatalogGroundTerm GroundTerm1 where
   unparse = \case GInt i -> printf "%d" i
                   GString s -> s
                   GHeapCtx -> "*"
@@ -101,7 +103,8 @@ instance GroundTerm GroundTerm1 where
   parse input = case fst . head . (readPrec_to_S parseGroundTerm 0) $ input of
                   Left s -> GString s
                   Right i -> GInt i
-
+  firstIndex = GInt 0
+  nextIndex (GInt n) = GInt $ n Prelude.+ 1
 
 andersenCallSiteSensitive :: Program GroundTerm1 Bool
 andersenCallSiteSensitive =

@@ -16,7 +16,7 @@ data Atom a b = Literal Predicate [Term a b] (b -> b)
 data Term a b = Variable String
               | Constant a
               | Expr [Term a b] ([a] -> a)
-              | Constructor [Term a b]
+              | Fresh [Term a b]
 
 type Predicate = String
 

@@ -28,6 +28,7 @@ dependencies:
 - filepath
 - parsec
 - mtl
+- transformers
 
 
 ghc-options:

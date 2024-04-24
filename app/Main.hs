@@ -29,7 +29,7 @@ main = let opts = info (cliOptions <**> helper)
        in handleOptions =<< execParser opts
 
 
-runProgram :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
+runProgram :: (DatalogGroundTerm a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
 runProgram p ind outd inrel outrel = do
   let inputFiles = (\r -> (r, ind </> r ++ ".csv")) <$> inrel
       outputFiles = (\r -> (r, outd </> r ++ ".csv")) <$> outrel
@@ -37,7 +37,7 @@ runProgram p ind outd inrel outrel = do
   let ctx' =  eval p ctx
   mapM_ (\(name, path) -> storeToCSV ctx' name path) outputFiles
 
-stepProgram :: (GroundTerm a, Ord a, Show a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
+stepProgram :: (DatalogGroundTerm a, Semiring s, Eq s, Show s) => Program a s -> FilePath -> FilePath -> [String] -> [String] -> IO ()
 stepProgram p ind outd inrel outrel = do
   let inputFiles = (\r -> (r, ind </> r ++ ".csv")) <$> inrel
       outputFiles = (\r -> (r, outd </> r ++ ".csv")) <$> outrel
@@ -52,10 +52,10 @@ data ProgramDesc a s = ProgramDesc {
   program :: Program a s
   }
 
-runProgramDesc :: (GroundTerm a, Ord a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
+runProgramDesc :: (DatalogGroundTerm a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
 runProgramDesc pd ind outd = runProgram pd.program ind outd pd.inRelations pd.outRelations
 
-stepProgramDesc :: (GroundTerm a, Ord a, Show a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
+stepProgramDesc :: (DatalogGroundTerm a, Semiring s, Eq s, Show s) => ProgramDesc a s -> FilePath -> FilePath -> IO ()
 stepProgramDesc pd ind outd = stepProgram pd.program ind outd pd.inRelations pd.outRelations
 
 
