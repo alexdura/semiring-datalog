@@ -16,11 +16,11 @@ data Expr a = IVal Int
             | SVal String
             | Nil
             | Cons (Expr a) (Expr a)
-            | Head {list::Expr a}
-            | Tail {list::Expr a}
-            | Attr {node::Expr a, attr::a, arg::Expr a}
-            | Func {name::String, arg::Expr a}
-            | IfElse {cond::Expr a, true::Expr a, false::Expr a}
+            | Head (Expr a)
+            | Tail (Expr a)
+            | Attr (Expr a) a (Expr a)
+            | Func String (Expr a)
+            | IfElse (Expr a) (Expr a) (Expr a)
             | Arg
             | Node
             deriving (Show, Eq)
