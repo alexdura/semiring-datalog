@@ -1,7 +1,7 @@
-module SaigaDatalog (translateToTerm, SaigaAtom, SaigaTerm) where
+module SaigaDatalog (translateToTerm, translateToClause, SaigaAtom, SaigaTerm, SaigaClause) where
 
 import Datalog
-import Saiga (Domain (..), Expr (..))
+import Saiga (Domain (..), Expr (..), SaigaElement(..), SaigaAttribute)
 import Control.Monad.State
 
 type SaigaTerm a = Term (Domain a) Bool
@@ -9,9 +9,10 @@ type SaigaAtom a = Atom (Domain a) Bool
 type SaigaClause a = Clause (Domain a) Bool
 
 equals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
-equals x y = Function [x, y] (\[x', y']-> x' == y')
+-- equals x y = Datalog.Function [x, y] (\[x', y']-> x' == y')
+equals x y = Literal "eq" [x, y] id
 
-translateToTermS :: (Enum attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
+translateToTermS :: (SaigaAttribute attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
 translateToTermS (IVal n) = return [(Constant $ DInt n, [])]
 translateToTermS (BVal b) = return [(Constant $ DBool b, [])]
 translateToTermS (SVal s) = return  [(Constant $ DString s, [])]
@@ -66,16 +67,19 @@ translateToTermS (Cons h t) = do
 
 translateToTermS Nil = do
   names <- get
-  let fvar = Variable $ head names
   put $ tail names
+  let fvar = Variable $ head names
   return [(fvar, [Literal "_nil" [fvar] id])]
 
---   fresh <- head varNames
---   put $ tail varNames
---   let fvar = Variable fresh
---   lift [(fvar, Literal name [argVar, fvar] id : argCons)]
+translateToTermS (Attr n attr arg) = do
+  names <- get
+  put $ tail names
+  let fvar = Variable $ head names
+  ns <- translateToTermS n
+  args <- translateToTermS arg
+  return [(fvar, lit (show attr) [fst args', fst args', fvar] : (snd args') ++ (snd ns')) | args' <- args, ns' <- ns]
 
-translateToTerm :: (Enum attr, Eq a) => Expr attr -> [(SaigaTerm a, [SaigaAtom a])]
+translateToTerm :: (SaigaAttribute attr, Eq a) => Expr attr -> [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
 
 reservedNames :: [String]
@@ -84,16 +88,16 @@ reservedNames = ["_node", "_arg", "_nil", "_head", "_tail", "_cons"]
 freshVarNames :: [String]
 freshVarNames = ['_' : p : v | v <- "":freshVarNames, p <- ['a'..'z'], ('_' : p : v) `notElem` reservedNames]
 
+translateToClauseS :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> State [String] [SaigaClause a]
+translateToClauseS (Saiga.Function name e) =  do
+  es <- translateToTermS e
+  return [[lit name [(var "_arg"), v]] += t | (v, t) <- es]
 
+translateToClauseS (Attribute attr e)= do
+  es <- translateToTermS e
+  return [[lit (show attr) [var "_node", var "_arg", v]] += t | (v, t) <- es]
 
+translateToClauseS _ = return []
 
-
-
-
-translateToAtom :: Enum attr => Expr attr -> [(SaigaAtom a, [SaigaAtom a])]
-translateToAtom = undefined
-
-
-
-translateToClause :: Enum attr => Expr attr -> [SaigaClause a]
-translateToClause = undefined
+translateToClause :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> [SaigaClause a]
+translateToClause el = evalState (translateToClauseS el) freshVarNames

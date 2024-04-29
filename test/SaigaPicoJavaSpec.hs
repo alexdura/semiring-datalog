@@ -109,7 +109,7 @@ nodeId (DNode (AST (_, i) _ _)) = i
 
 evalExpr ast path expr =
   let n = findNodeByPath ast path
-      ctx = AttributeCtx picoJavaAttrLookup (picoJavaBuiltinAttrLookup ast) picoJavaFunc picoJavaBuiltinFunc
+      ctx = makeAttributeCtx (picoJavaProgram ast)
       (r, log) = evalWithLog ctx (DList []) n expr
   in
     case r of
@@ -128,7 +128,7 @@ prettyLog log = intercalate "\n" (prettyLogEntry <$> log)
 evalExpr1 :: PicoJavaAST -> Int -> Expr PicoJavaAttr -> Domain (String, Int)
 evalExpr1 ast nid expr =
   let n = fromJust $ findNodeById ast nid
-      ctx = AttributeCtx picoJavaAttrLookup (picoJavaBuiltinAttrLookup ast) picoJavaFunc picoJavaBuiltinFunc
+      ctx = makeAttributeCtx (picoJavaProgram ast)
       (r, log) = evalWithLog ctx (DList []) n expr
   in
     case r of
@@ -137,7 +137,7 @@ evalExpr1 ast nid expr =
 
 evalExprDebug ast nid expr logsize =
   let n = fromJust $ findNodeById ast nid
-      ctx = AttributeCtx picoJavaAttrLookup (picoJavaBuiltinAttrLookup ast) picoJavaFunc picoJavaBuiltinFunc
+      ctx = makeAttributeCtx (picoJavaProgram ast)
       log = take logsize $ snd $ evalWithLog ctx (DList []) n expr
   in
     prettyLog log

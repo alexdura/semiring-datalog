@@ -20,7 +20,9 @@ data PicoJavaAttr = Decl
                   | Name
                   | Superclass
                   | Type
-                  deriving (Eq, Show)
+                  deriving (Eq, Show, Enum)
+
+instance SaigaAttribute PicoJavaAttr
 
 hasKind :: Expr PicoJavaAttr
 hasKind = Node <.> Kind <?> nil
@@ -28,7 +30,7 @@ hasKind = Node <.> Kind <?> nil
 predefs = Func "predefs" Nil
 
 -- attribute definitions - Figure 15
-declAttr = AttributeDef Decl $
+declAttr = Attribute Decl $
   let use = Child <?> (int 1)
       name = Name <?> nil
       decl = Decl <?> nil
@@ -38,7 +40,7 @@ declAttr = AttributeDef Decl $
            (otherwise, mkUnknownDecl)] -- L3
 
 
-lookupAttr = AttributeDef Lookup $
+lookupAttr = Attribute Lookup $
   let parent = Parent <?> nil
       superclass = Superclass <?> nil
       block = Child <?> (int 1)
@@ -59,7 +61,7 @@ lookupAttr = AttributeDef Lookup $
             (otherwise, Node <.> parent <.> Lookup <?> (Arg))] -- L8
 
 
-localLookupAttr = AttributeDef LocalLookup $
+localLookupAttr = Attribute LocalLookup $
   let items = Children <?> (Nil)
   in
     guard [(hasKind === "Program", ifOK (Func "finddecl" (Arg <:> (Node <.> items) <:> Nil))
@@ -68,7 +70,7 @@ localLookupAttr = AttributeDef LocalLookup $
            (otherwise, mkUnknownDecl)]
 
 
-remoteLookup = AttributeDef RemoteLookup $
+remoteLookup = Attribute RemoteLookup $
     let parent = Parent <?> nil
         superclass = Superclass <?> nil
         block = Child <?> (int 1)
@@ -79,7 +81,7 @@ remoteLookup = AttributeDef RemoteLookup $
              (otherwise, mkUnknownDecl)]
 
 
-superclassAttr = AttributeDef Superclass $
+superclassAttr = Attribute Superclass $
   let use = Child <?> (int 1)
       kind = Kind <?> (nil)
       decl = Decl <?> (nil)
@@ -88,7 +90,7 @@ superclassAttr = AttributeDef Superclass $
            (otherwise, mkUnknownClass)]
 
 
-typeAttr = AttributeDef Type $
+typeAttr = Attribute Type $
   let decl = Decl <?> (nil)
       access = Child <?> (int 0)
       kind = Kind <?> (nil)
@@ -97,43 +99,48 @@ typeAttr = AttributeDef Type $
            (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknownClass),
            (otherwise, mkUnknownClass)]
 
-picoJavaAttrLookup :: PicoJavaAttr -> AttributeDef PicoJavaAttr
-picoJavaAttrLookup attr = case attr of
-  Decl -> declAttr
-  Type -> typeAttr
-  Lookup -> lookupAttr
-  RemoteLookup -> remoteLookup
-  LocalLookup -> localLookupAttr
-  Superclass -> superclassAttr
-  ua -> error $ "Missing attribute definition for " ++ show ua
+-- picoJavaAttrLookup :: PicoJavaAttr -> AttributeDef PicoJavaAttr
+-- picoJavaAttrLookup attr = case attr of
+--   Decl -> declAttr
+--   Type -> typeAttr
+--   Lookup -> lookupAttr
+--   RemoteLookup -> remoteLookup
+--   LocalLookup -> localLookupAttr
+--   Superclass -> superclassAttr
+--   ua -> error $ "Missing attribute definition for " ++ show ua
 
 
 type PicoJavaAST = AST (String, Int)
 
+unknownDecl :: AST (String, Int)
 unknownDecl = AST ("unknown", 0) "_unknown_" []
+
+unknownClass :: AST (String, Int)
 unknownClass = AST ("ClassDecl", -3) "_unknown_" [unknownDecl, AST ("Block", -4) "" []]
+
+boolDecl :: AST (String, Int)
 boolDecl = AST ("ClassDecl", -1) "bool" [AST ("Block", -2) "" []]
 
 mkUnknownDecl = Func "mkUnknownDecl" Nil
 mkUnknownClass = Func "mkUnknownClass" Nil
 
-picoJavaBuiltinAttrLookup :: PicoJavaAST
-  -> PicoJavaAttr
-  -> Maybe (PicoJavaAST -> Domain (String, Int) -> Domain (String, Int))
+-- picoJavaBuiltinAttrLookup :: PicoJavaAST
+--   -> PicoJavaAttr
+--   -> Maybe (PicoJavaAST -> Domain (String, Int) -> Domain (String, Int))
 
-picoJavaBuiltinAttrLookup ast attr =
-  let pm = parentMap ast in
-    case attr of
-      Parent -> Just (\n -> let p = Map.lookup n pm in
-                              if isJust p then const (DNode $ fromJust p)
-                              else const $ DNode unknownDecl)
-      Child -> Just (\n (DInt i) -> if i >= (length n.children)
-                                    then error $ "Index " ++ show i ++ " for node " ++ show n
-                                    else DNode $ n.children !! i)
-      Kind -> Just (\n -> const $ DString $ fst n.kind)
-      Name -> Just (\n -> const $ DString $ n.token)
-      Children -> Just (\n -> const $ DList (DNode <$> n.children))
-      _ -> Nothing
+-- picoJavaBuiltinAttrLookup ast attr =
+--   let pm = parentMap ast in
+--     case attr of
+--       Parent -> Just (\n -> let p = Map.lookup n pm in
+--                               if isJust p then const (DNode $ fromJust p)
+--                               else const $ DNode unknownDecl)
+--       Child -> Just (\n (DInt i) -> if i >= (length n.children)
+--                                     then error $ "Index " ++ show i ++ " for node " ++ show n
+--                                     else DNode $ n.children !! i)
+--       Kind -> Just (\n -> const $ DString $ fst n.kind)
+--       Name -> Just (\n -> const $ DString $ n.token)
+--       Children -> Just (\n -> const $ DList (DNode <$> n.children))
+--       _ -> Nothing
 
 
 findDeclExpr :: Expr PicoJavaAttr
@@ -143,17 +150,66 @@ findDeclExpr =
   in IfElse (arg1 === Nil) mkUnknownDecl
      (IfElse (arg0 === ((Head arg1) <.> Name <?> Nil)) (Head arg1) (Func "finddecl" (arg0 <:> (Tail arg1) <:> Nil)))
 
-picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
-picoJavaFunc name = case name of
-  "finddecl" -> Just findDeclExpr
-  _ -> Nothing
+-- picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
+-- picoJavaFunc name = case name of
+--   "finddecl" -> Just findDeclExpr
+--   _ -> Nothing
 
-picoJavaBuiltinFunc ::  String -> Maybe (Domain (String, Int) -> Domain (String, Int))
-picoJavaBuiltinFunc name = case name of
-  "predefs" -> Just (\_ -> DList [DNode boolDecl])
-  "isUnknown" -> Just $ \case (DNode n) -> DBool $ n.token == "_unknown_"
-                              e -> error $ "Unexpected argument " ++ show e
-  "mkUnknownDecl" -> Just $ const $ DNode unknownDecl
-  "mkUnknownClass" -> Just $ const $ DNode unknownClass
-  "eq" -> Just (\(DList [x, y]) -> DBool $ x == y)
-  _ -> Nothing
+-- picoJavaBuiltinFunc ::  String -> Maybe (Domain (String, Int) -> Domain (String, Int))
+-- picoJavaBuiltinFunc name = case name of
+--   "predefs" -> Just (\_ -> DList [DNode boolDecl])
+--   "isUnknown" -> Just $ \case (DNode n) -> DBool $ n.token == "_unknown_"
+--                               e -> error $ "Unexpected argument " ++ show e
+--   "mkUnknownDecl" -> Just $ const $ DNode unknownDecl
+--   "mkUnknownClass" -> Just $ const $ DNode unknownClass
+--   "eq" -> Just (\(DList [x, y]) -> DBool $ x == y)
+--   _ -> Nothing
+
+
+picoJavaProgram ast =
+  let pm = parentMap ast in [
+    declAttr,
+    typeAttr,
+    lookupAttr,
+    remoteLookup,
+    localLookupAttr,
+    superclassAttr,
+
+    BuiltinAttribute Parent $
+      \(DNode n) -> let p = Map.lookup n pm in
+                      if isJust p then const (DNode $ fromJust p)
+                      else const $ DNode unknownDecl,
+
+    BuiltinAttribute Child $
+      \(DNode n) (DInt i) -> if i >= (length n.children)
+                     then error $ "Index " ++ show i ++ " for node " ++ show n
+                     else DNode $ n.children !! i,
+
+    BuiltinAttribute Kind $
+      \(DNode n) -> const $ DString $ fst n.kind,
+
+    BuiltinAttribute Name $
+      \(DNode n) -> const $ DString $ n.token,
+
+    BuiltinAttribute Children $
+      \(DNode n) -> const $ DList (DNode <$> n.children),
+
+    Function "finddecl" findDeclExpr,
+
+    BuiltinFunction "predefs" $
+      \_ -> DList [DNode boolDecl],
+
+    BuiltinFunction "isUnknown" $
+      \case
+        (DNode n) -> DBool $ n.token == "_unknown_"
+        e -> error $ "Unexpected argument " ++ show e,
+
+    BuiltinFunction "mkUnknownDecl" $
+      const $ DNode unknownDecl,
+
+    BuiltinFunction "mkUnknownClass" $
+      const $ DNode unknownClass,
+
+    BuiltinFunction "eq" $
+      \(DList [x, y]) -> DBool $ x == y
+    ]

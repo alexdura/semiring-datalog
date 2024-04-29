@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Saiga(prettyAttributeDef, prettyExpr, Expr(..), AttributeDef(..), (<?>),
+module Saiga(prettyExpr, Expr(..), AttributeDef(..), SaigaElement(..), SaigaProgram, SaigaAttribute, (<?>),
              (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not,
-             Domain(..), prettyDomain, AttributeCtx(..), evalWithLog, LogEntry(..)) where
+             Domain(..), prettyDomain, AttributeCtx, makeAttributeCtx, evalWithLog, LogEntry(..)) where
 
 import Prelude hiding (otherwise, not, log)
 import Data.String ( IsString(..) )
 import PicoJava(AST(..))
 import Control.Monad.Writer hiding (guard)
 import Control.Monad.Except hiding (guard)
-import Data.List ( intercalate )
+import Data.List (intercalate, find)
 
 data Expr a = IVal Int
             | BVal Bool
@@ -63,15 +63,65 @@ prettyExpr parentPrio b@(IfElse c t f) =
 prettyExpr _ Arg = "arg"
 prettyExpr _ Node = "node"
 
+data SaigaElement attr a = Attribute attr (Expr attr)
+                         | BuiltinAttribute attr (Domain a -> Domain a -> Domain a)
+                         | Function String (Expr attr)
+                         | BuiltinFunction String (Domain a -> Domain a)
+
+
+type SaigaProgram attr a = [SaigaElement attr a]
+
+class (Eq a, Show a, Enum a) => SaigaAttribute a
+
+isAttribute :: SaigaElement attr a -> Bool
+isAttribute (Attribute {}) = True
+isAttribute (BuiltinAttribute {}) = True
+isAttribute _ = False
+
+
+isBuiltin :: SaigaElement attr a -> Bool
+isBuiltin (BuiltinAttribute {}) = True
+isBuiltin (BuiltinFunction {}) = True
+isBuiltin _ = False
+
+
+lookupAttribute :: (SaigaAttribute attr) => attr -> SaigaProgram attr a -> Maybe (SaigaElement attr a)
+lookupAttribute name = find (\case
+                                Attribute attr _ -> attr == name
+                                BuiltinAttribute attr _ -> attr == name
+                                _ -> False)
+
+lookupFunction :: (SaigaAttribute attr) => String -> SaigaProgram attr a -> Maybe (SaigaElement attr a)
+lookupFunction name = find (\case
+                               Function f _ -> f == name
+                               BuiltinFunction f _ -> f == name
+                               _ -> False)
+
+makeAttributeCtx :: SaigaAttribute attr => SaigaProgram attr a -> AttributeCtx attr a
+makeAttributeCtx p = AttributeCtx {
+  lookup = \attr -> case lookupAttribute attr p of
+      Just (Attribute _ expr) -> AttributeDef attr expr
+      _ -> error "Attribute definition not found.",
+
+  builtin = \attr -> case lookupAttribute attr p of
+      Just (BuiltinAttribute _ f) -> Just (f . DNode)
+      _ -> Nothing,
+
+  func = \name -> case lookupFunction name p of
+      Just (Function _ expr) -> Just expr
+      _ -> Nothing,
+
+  builtinFunc = \name -> case lookupFunction name p of
+      Just (BuiltinFunction _ f) -> Just f
+      _ -> Nothing
+  }
+
 
 data AttributeDef a = AttributeDef {attr::a, equation::(Expr a)}
   deriving (Eq, Show)
 
-prettyAttributeDef :: Show a => AttributeDef a -> String
-prettyAttributeDef (AttributeDef attr e) = "node" ++ "." ++ show attr ++ "(" ++ "arg" ++ ") = " ++ prettyExpr 0 e
 
 int = IVal
-bool = BVal
 nil = Nil
 
 
@@ -131,6 +181,8 @@ data AttributeCtx attr a = AttributeCtx {
   func :: String -> Maybe (Expr attr),
   builtinFunc :: String -> Maybe (Domain a -> Domain a)
   }
+
+
 
 
 data LogEntry attr a = LogEntry (Domain a) (AST a) (Expr attr) (Domain a)

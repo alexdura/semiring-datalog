@@ -17,7 +17,7 @@ import Context
 
 evalTests :: TestTree
 evalTests = testGroup "Unit tests" [
-  testCase "pretty print" $ (prettyProgram p1) @?= "edge(1, 2), edge(2, 3) <- True\npath(\"x\", \"y\") <- edge(\"x\", \"y\")\npath(\"x\", \"z\") <- path(\"x\", \"y\"), path(\"y\", \"z\")",
+  testCase "pretty print" $ (prettyProgram p1) @?= "edge(1, 2), edge(2, 3) <- True\npath(x, y) <- edge(x, y)\npath(x, z) <- path(x, y), path(y, z)",
   testCase "eval 1" $ (query "edge" r1) @?= [([1, 2], True), ([2, 3], True)],
   testCase "eval 2" $ (query "path" r1) @?= [([1, 2], True), ([1, 3], True), ([2, 3], True)],
   testCase "eval 3" $ (query "edge" r2) @?= [],

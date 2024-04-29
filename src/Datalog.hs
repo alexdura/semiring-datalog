@@ -26,7 +26,7 @@ prettyAtom (Value b) = show b
 prettyAtom (Function ts _) = "__builtin_function__" ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 
 prettyTerm (Constant c) = show c
-prettyTerm (Variable v) = show v
+prettyTerm (Variable v) = v
 prettyTerm (Expr ts _) = "expr(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
 prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
