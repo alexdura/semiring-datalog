@@ -149,7 +149,7 @@ not e = IfElse e (BVal False) (BVal True)
 
 equal = Func "eq"
 infix 4 ===
-(===) l r = equal [l <:> r <:> Nil]
+(===) l r = equal [l, r]
 
 
 otherwise :: Expr a

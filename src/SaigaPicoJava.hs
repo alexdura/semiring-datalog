@@ -64,9 +64,9 @@ lookupAttr = Attribute Lookup 1 $
 localLookupAttr = Attribute LocalLookup 1 $
   let items = Children <?> []
   in
-    guard [(hasKind === "Program", ifOK (Func "finddecl" [Arg 0 <:> (Node <.> items) <:> Nil])
-                                   (Func "finddecl" [Arg 0 <:> predefs <:> Nil])),
-           (hasKind === "Block", Func "finddecl" [Arg 0 <:> (Node <.> items) <:> Nil]),
+    guard [(hasKind === "Program", ifOK (Func "finddecl" [Arg 0, Node <.> items])
+                                   (Func "finddecl" [Arg 0, predefs])),
+           (hasKind === "Block", Func "finddecl" [Arg 0, Node <.> items]),
            (otherwise, mkUnknownDecl)]
 
 
@@ -145,10 +145,10 @@ mkUnknownClass = Func "mkUnknownClass" []
 
 findDeclExpr :: Expr PicoJavaAttr
 findDeclExpr =
-  let arg0 = Head (Arg 0)
-      arg1 = Head (Tail (Arg 0))
+  let arg0 = Arg 0
+      arg1 = Arg 1
   in IfElse (arg1 === Nil) mkUnknownDecl
-     (IfElse (arg0 === ((Head arg1) <.> Name <?> [])) (Head arg1) (Func "finddecl" [arg0 <:> (Tail arg1) <:> Nil]))
+     (IfElse (arg0 === ((Head arg1) <.> Name <?> [])) (Head arg1) (Func "finddecl" [arg0, Tail arg1]))
 
 -- picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
 -- picoJavaFunc name = case name of
@@ -194,9 +194,9 @@ picoJavaProgram ast =
     BuiltinAttribute Children 0 $
       \(DNode n) -> const $ DList (DNode <$> n.children),
 
-    Function "finddecl" 1 findDeclExpr,
+    Function "finddecl" 2 findDeclExpr,
 
-    BuiltinFunction "predefs" 1 $
+    BuiltinFunction "predefs" 0 $
       \_ -> DList [DNode boolDecl],
 
     BuiltinFunction "isUnknown" 1 $
@@ -210,6 +210,6 @@ picoJavaProgram ast =
     BuiltinFunction "mkUnknownClass" 0 $
       const $ DNode unknownClass,
 
-    BuiltinFunction "eq" 1 $
-      \[DList [x, y]] -> DBool $ x == y
+    BuiltinFunction "eq" 2 $
+      \[x, y] -> DBool $ x == y
     ]
