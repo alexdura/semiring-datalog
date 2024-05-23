@@ -124,24 +124,6 @@ boolDecl = AST ("ClassDecl", -1) "bool" [AST ("Block", -2) "" []]
 mkUnknownDecl = Func "mkUnknownDecl" []
 mkUnknownClass = Func "mkUnknownClass" []
 
--- picoJavaBuiltinAttrLookup :: PicoJavaAST
---   -> PicoJavaAttr
---   -> Maybe (PicoJavaAST -> Domain (String, Int) -> Domain (String, Int))
-
--- picoJavaBuiltinAttrLookup ast attr =
---   let pm = parentMap ast in
---     case attr of
---       Parent -> Just (\n -> let p = Map.lookup n pm in
---                               if isJust p then const (DNode $ fromJust p)
---                               else const $ DNode unknownDecl)
---       Child -> Just (\n (DInt i) -> if i >= (length n.children)
---                                     then error $ "Index " ++ show i ++ " for node " ++ show n
---                                     else DNode $ n.children !! i)
---       Kind -> Just (\n -> const $ DString $ fst n.kind)
---       Name -> Just (\n -> const $ DString $ n.token)
---       Children -> Just (\n -> const $ DList (DNode <$> n.children))
---       _ -> Nothing
-
 
 findDeclExpr :: Expr PicoJavaAttr
 findDeclExpr =
@@ -149,22 +131,6 @@ findDeclExpr =
       arg1 = Arg 1
   in IfElse (arg1 === Nil) mkUnknownDecl
      (IfElse (arg0 === ((Head arg1) <.> Name <?> [])) (Head arg1) (Func "finddecl" [arg0, Tail arg1]))
-
--- picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
--- picoJavaFunc name = case name of
---   "finddecl" -> Just findDeclExpr
---   _ -> Nothing
-
--- picoJavaBuiltinFunc ::  String -> Maybe (Domain (String, Int) -> Domain (String, Int))
--- picoJavaBuiltinFunc name = case name of
---   "predefs" -> Just (\_ -> DList [DNode boolDecl])
---   "isUnknown" -> Just $ \case (DNode n) -> DBool $ n.token == "_unknown_"
---                               e -> error $ "Unexpected argument " ++ show e
---   "mkUnknownDecl" -> Just $ const $ DNode unknownDecl
---   "mkUnknownClass" -> Just $ const $ DNode unknownClass
---   "eq" -> Just (\(DList [x, y]) -> DBool $ x == y)
---   _ -> Nothing
-
 
 picoJavaProgram ast =
   let pm = parentMap ast in [

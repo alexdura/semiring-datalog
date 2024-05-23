@@ -11,7 +11,7 @@ type SaigaClause a = Clause (Domain a) Bool
 
 equals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
 -- equals x y = Datalog.Function [x, y] (\[x', y']-> x' == y')
-equals x y = Literal "eq" [x, y] id
+equals x y = Literal "_builtin_eq" [x, y] id
 
 translateToTermS :: (SaigaAttribute attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
 translateToTermS (IVal n) = return [(Constant $ DInt n, [])]

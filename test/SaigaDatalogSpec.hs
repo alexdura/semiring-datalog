@@ -49,9 +49,12 @@ translateToClause' :: SaigaElement PicoJavaAttr TestDomain -> [SaigaClause TestD
 translateToClause' = translateToClause
 
 saigaDatalogTests = testGroup "Saiga to Datalog translation" [
-  testCase "Translate If Expression" $ (show $ translateToTerm' test1) @?= "[(DBool True,[eq(_arg_0, DBool True)]),(DBool False,[eq(_arg_0, DBool False)])]",
+  testCase "Translate If Expression" $ (show $ translateToTerm' test1) @?= "[(DBool True,[_builtin_eq(_arg_0, DBool True)]),(DBool False,[_builtin_eq(_arg_0, DBool False)])]",
 
   testCase "Translate function definition" $ (prettyProgram $ Program $ translateToClause'
                                                (Saiga.Function "finddecl" 2 SaigaPicoJava.findDeclExpr)) @?=
-    "finddecl(_arg_0, _arg_1, _c) <- eq(_b, DBool True), eq(_arg_1, _a, _b), _nil(_a), mkUnknownDecl(_c)\nfinddecl(_arg_0, _arg_1, _g) <- eq(_b, DBool False), eq(_arg_1, _a, _b), _nil(_a), eq(_f, DBool True), eq(_arg_0, _d, _f), Name(_e, _d), _head(_arg_1, _e), _head(_arg_1, _g)\nfinddecl(_arg_0, _arg_1, _c) <- eq(_b, DBool True), eq(_arg_1, _a, _b), _nil(_a), mkUnknownDecl(_c)\nfinddecl(_arg_0, _arg_1, _i) <- eq(_b, DBool False), eq(_arg_1, _a, _b), _nil(_a), eq(_f, DBool False), eq(_arg_0, _d, _f), Name(_e, _d), _head(_arg_1, _e), finddecl(_arg_0, _h, _i), _tail(_arg_1, _h)"
+    "finddecl(_arg_0, _arg_1, _c) <- _builtin_eq(_b, DBool True), eq(_arg_1, _a, _b), _nil(_a), mkUnknownDecl(_c)\n\
+    \finddecl(_arg_0, _arg_1, _g) <- _builtin_eq(_b, DBool False), eq(_arg_1, _a, _b), _nil(_a), _builtin_eq(_f, DBool True), eq(_arg_0, _d, _f), Name(_e, _d), _head(_arg_1, _e), _head(_arg_1, _g)\n\
+    \finddecl(_arg_0, _arg_1, _c) <- _builtin_eq(_b, DBool True), eq(_arg_1, _a, _b), _nil(_a), mkUnknownDecl(_c)\n\
+    \finddecl(_arg_0, _arg_1, _i) <- _builtin_eq(_b, DBool False), eq(_arg_1, _a, _b), _nil(_a), _builtin_eq(_f, DBool False), eq(_arg_0, _d, _f), Name(_e, _d), _head(_arg_1, _e), finddecl(_arg_0, _h, _i), _tail(_arg_1, _h)"
   ]
