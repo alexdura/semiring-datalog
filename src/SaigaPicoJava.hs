@@ -25,75 +25,75 @@ data PicoJavaAttr = Decl
 instance SaigaAttribute PicoJavaAttr
 
 hasKind :: Expr PicoJavaAttr
-hasKind = Node <.> Kind <?> nil
+hasKind = Node <.> Kind <?> []
 
-predefs = Func "predefs" Nil
+predefs = Func "predefs" []
 
 -- attribute definitions - Figure 15
-declAttr = Attribute Decl $
-  let use = Child <?> (int 1)
-      name = Name <?> nil
-      decl = Decl <?> nil
+declAttr = Attribute Decl 0 $
+  let use = Child <?> [int 1]
+      name = Name <?> []
+      decl = Decl <?> []
   in
     guard [(hasKind === (SVal "Dot"), Node <.> use <.> decl), -- L1
-           (hasKind === (SVal "Use"), Node <.> Lookup <?> (Node <.> name)), -- L2
+           (hasKind === (SVal "Use"), Node <.> Lookup <?> [Node <.> name]), -- L2
            (otherwise, mkUnknownDecl)] -- L3
 
 
-lookupAttr = Attribute Lookup $
-  let parent = Parent <?> nil
-      superclass = Superclass <?> nil
-      block = Child <?> (int 1)
-      decl = Decl <?> nil
-      typ = Type <?> nil
-      kind = Kind <?> nil
-      access = Child <?> (int 0)
-      rhs = Child <?> (int 1)
+lookupAttr = Attribute Lookup 1 $
+  let parent = Parent <?> []
+      superclass = Superclass <?> []
+      block = Child <?> [int 1]
+      decl = Decl <?> []
+      typ = Type <?> []
+      kind = Kind <?> []
+      access = Child <?> [int 0]
+      rhs = Child <?> [int 1]
   in
-    guard [(hasKind === "Program", Node <.> LocalLookup <?> Arg), -- L4
-            (hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg)) -- L5
-                                  (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg))
-                                   Node <.> parent <.> Lookup <?> (Arg))),
+    guard [(hasKind === "Program", Node <.> LocalLookup <?> [Arg 0]), -- L4
+            (hasKind === "Block", ifOK (Node <.> LocalLookup <?> [Arg 0]) -- L5
+                                  (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> [Arg 0])
+                                   Node <.> parent <.> Lookup <?> [Arg 0])),
             (hasKind === "Use" <&&>
              (Node <.> parent <.> kind === "Dot") <&&>
-             (Node <.> parent <.> rhs === Node), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> (Arg)), -- L6
-            (isUnknown Node, mkUnknownDecl), -- L7
-            (otherwise, Node <.> parent <.> Lookup <?> (Arg))] -- L8
+             (Node <.> parent <.> rhs === Node), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> [Arg 0]), -- L6
+            (isUnknown [Node], mkUnknownDecl), -- L7
+            (otherwise, Node <.> parent <.> Lookup <?> [Arg 0])] -- L8
 
 
-localLookupAttr = Attribute LocalLookup $
-  let items = Children <?> (Nil)
+localLookupAttr = Attribute LocalLookup 1 $
+  let items = Children <?> []
   in
-    guard [(hasKind === "Program", ifOK (Func "finddecl" (Arg <:> (Node <.> items) <:> Nil))
-                                   (Func "finddecl" (Arg <:> predefs <:> Nil))),
-           (hasKind === "Block", Func "finddecl" (Arg <:> (Node <.> items) <:> Nil)),
+    guard [(hasKind === "Program", ifOK (Func "finddecl" [Arg 0 <:> (Node <.> items) <:> Nil])
+                                   (Func "finddecl" [Arg 0 <:> predefs <:> Nil])),
+           (hasKind === "Block", Func "finddecl" [Arg 0 <:> (Node <.> items) <:> Nil]),
            (otherwise, mkUnknownDecl)]
 
 
-remoteLookup = Attribute RemoteLookup $
-    let parent = Parent <?> nil
-        superclass = Superclass <?> nil
-        block = Child <?> (int 1)
+remoteLookup = Attribute RemoteLookup 1 $
+    let parent = Parent <?> []
+        superclass = Superclass <?> []
+        block = Child <?> [int 1]
     in
-      guard [(hasKind === "Block", ifOK (Node <.> LocalLookup <?> (Arg))
-                                   (IfElse (isUnknown (Node <.> parent <.> superclass)) mkUnknownDecl
-                                     (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> (Arg)) mkUnknownDecl))),
+      guard [(hasKind === "Block", ifOK (Node <.> LocalLookup <?> [Arg 0])
+                                   (IfElse (isUnknown [Node <.> parent <.> superclass]) mkUnknownDecl
+                                     (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> [Arg 0]) mkUnknownDecl))),
              (otherwise, mkUnknownDecl)]
 
 
-superclassAttr = Attribute Superclass $
-  let use = Child <?> (int 1)
-      kind = Kind <?> (nil)
-      decl = Decl <?> (nil)
+superclassAttr = Attribute Superclass 0 $
+  let use = Child <?> [int 1]
+      kind = Kind <?> []
+      decl = Decl <?> []
   in
-    guard [(hasKind === "ClassDecl" <&&> not (isUnknown (Node <.> use)), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknownClass),
+    guard [(hasKind === "ClassDecl" <&&> not (isUnknown [Node <.> use]), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknownClass),
            (otherwise, mkUnknownClass)]
 
 
-typeAttr = Attribute Type $
-  let decl = Decl <?> (nil)
-      access = Child <?> (int 0)
-      kind = Kind <?> (nil)
+typeAttr = Attribute Type 0 $
+  let decl = Decl <?> []
+      access = Child <?> [int 0]
+      kind = Kind <?> [nil]
   in
     guard [(Node <.> kind === "ClassDecl", Node),
            (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknownClass),
@@ -121,8 +121,8 @@ unknownClass = AST ("ClassDecl", -3) "_unknown_" [unknownDecl, AST ("Block", -4)
 boolDecl :: AST (String, Int)
 boolDecl = AST ("ClassDecl", -1) "bool" [AST ("Block", -2) "" []]
 
-mkUnknownDecl = Func "mkUnknownDecl" Nil
-mkUnknownClass = Func "mkUnknownClass" Nil
+mkUnknownDecl = Func "mkUnknownDecl" []
+mkUnknownClass = Func "mkUnknownClass" []
 
 -- picoJavaBuiltinAttrLookup :: PicoJavaAST
 --   -> PicoJavaAttr
@@ -145,10 +145,10 @@ mkUnknownClass = Func "mkUnknownClass" Nil
 
 findDeclExpr :: Expr PicoJavaAttr
 findDeclExpr =
-  let arg0 = Head Arg
-      arg1 = Head (Tail Arg)
+  let arg0 = Head (Arg 0)
+      arg1 = Head (Tail (Arg 0))
   in IfElse (arg1 === Nil) mkUnknownDecl
-     (IfElse (arg0 === ((Head arg1) <.> Name <?> Nil)) (Head arg1) (Func "finddecl" (arg0 <:> (Tail arg1) <:> Nil)))
+     (IfElse (arg0 === ((Head arg1) <.> Name <?> [])) (Head arg1) (Func "finddecl" [arg0 <:> (Tail arg1) <:> Nil]))
 
 -- picoJavaFunc :: String -> Maybe (Expr PicoJavaAttr)
 -- picoJavaFunc name = case name of
@@ -175,41 +175,41 @@ picoJavaProgram ast =
     localLookupAttr,
     superclassAttr,
 
-    BuiltinAttribute Parent $
+    BuiltinAttribute Parent 0 $
       \(DNode n) -> let p = Map.lookup n pm in
                       if isJust p then const (DNode $ fromJust p)
                       else const $ DNode unknownDecl,
 
-    BuiltinAttribute Child $
-      \(DNode n) (DInt i) -> if i >= (length n.children)
+    BuiltinAttribute Child 1 $
+      \(DNode n) [DInt i] -> if i >= (length n.children)
                      then error $ "Index " ++ show i ++ " for node " ++ show n
                      else DNode $ n.children !! i,
 
-    BuiltinAttribute Kind $
+    BuiltinAttribute Kind 0 $
       \(DNode n) -> const $ DString $ fst n.kind,
 
-    BuiltinAttribute Name $
+    BuiltinAttribute Name 0 $
       \(DNode n) -> const $ DString $ n.token,
 
-    BuiltinAttribute Children $
+    BuiltinAttribute Children 0 $
       \(DNode n) -> const $ DList (DNode <$> n.children),
 
-    Function "finddecl" findDeclExpr,
+    Function "finddecl" 1 findDeclExpr,
 
-    BuiltinFunction "predefs" $
+    BuiltinFunction "predefs" 1 $
       \_ -> DList [DNode boolDecl],
 
-    BuiltinFunction "isUnknown" $
+    BuiltinFunction "isUnknown" 1 $
       \case
-        (DNode n) -> DBool $ n.token == "_unknown_"
+        [DNode n] -> DBool $ n.token == "_unknown_"
         e -> error $ "Unexpected argument " ++ show e,
 
-    BuiltinFunction "mkUnknownDecl" $
+    BuiltinFunction "mkUnknownDecl" 0 $
       const $ DNode unknownDecl,
 
-    BuiltinFunction "mkUnknownClass" $
+    BuiltinFunction "mkUnknownClass" 0 $
       const $ DNode unknownClass,
 
-    BuiltinFunction "eq" $
-      \(DList [x, y]) -> DBool $ x == y
+    BuiltinFunction "eq" 1 $
+      \[DList [x, y]] -> DBool $ x == y
     ]

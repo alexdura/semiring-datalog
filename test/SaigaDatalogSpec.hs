@@ -38,7 +38,7 @@ data TestAttribute = Attr1
 instance SaigaAttribute TestAttribute
 
 test1 :: Expr TestAttribute
-test1 = IfElse (Arg) (BVal True) (BVal False)
+test1 = IfElse (Arg 0) (BVal True) (BVal False)
 
 type TestDomain = Domain String
 
@@ -49,9 +49,9 @@ translateToClause' :: SaigaElement PicoJavaAttr TestDomain -> [SaigaClause TestD
 translateToClause' = translateToClause
 
 saigaDatalogTests = testGroup "Saiga to Datalog translation" [
-  testCase "Translate If Expression" $ (show $ translateToTerm' test1) @?= "[(DBool True,[eq(_arg, DBool True)]),(DBool False,[eq(_arg, DBool False)])]",
+  testCase "Translate If Expression" $ (show $ translateToTerm' test1) @?= "[(DBool True,[eq(_arg_0, DBool True)]),(DBool False,[eq(_arg_0, DBool False)])]",
 
   testCase "Translate function definition" $ (prettyProgram $ Program $ translateToClause'
-                                               (Saiga.Function "finddecl" SaigaPicoJava.findDeclExpr)) @?=
-    "finddecl(_arg, _i) <- eq(_g, DBool True), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), mkUnknownDecl(_h, _i), _nil(_h)\nfinddecl(_arg, _v) <- eq(_g, DBool False), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), eq(_s, DBool True), eq(_r, _s), _cons(_j, _q, _r), _head(_arg, _j), _cons(_k, _p, _q), Name(_o, _o, _k), _nil(_o), _head(_m, _n), _head(_l, _m), _tail(_arg, _l), _nil(_p), _head(_u, _v), _head(_t, _u), _tail(_arg, _t)\nfinddecl(_arg, _i) <- eq(_g, DBool True), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), mkUnknownDecl(_h, _i), _nil(_h)\nfinddecl(_arg, _d_a) <- eq(_g, DBool False), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), eq(_s, DBool False), eq(_r, _s), _cons(_j, _q, _r), _head(_arg, _j), _cons(_k, _p, _q), Name(_o, _o, _k), _nil(_o), _head(_m, _n), _head(_l, _m), _tail(_arg, _l), _nil(_p), finddecl(_c_a, _d_a), _cons(_w, _b_a, _c_a), _head(_arg, _w), _cons(_z, _a_a, _b_a), _tail(_y, _z), _head(_x, _y), _tail(_arg, _x), _nil(_a_a)"
+                                               (Saiga.Function "finddecl" 1 SaigaPicoJava.findDeclExpr)) @?=
+    "finddecl(_arg_0, _h) <- eq(_g, DBool True), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg_0, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), mkUnknownDecl(_h)\nfinddecl(_arg_0, _t) <- eq(_g, DBool False), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg_0, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), eq(_q, DBool True), eq(_p, _q), _cons(_i, _o, _p), _head(_arg_0, _i), _cons(_j, _n, _o), Name(_m, _j), _head(_l, _m), _head(_k, _l), _tail(_arg_0, _k), _nil(_n), _head(_s, _t), _head(_r, _s), _tail(_arg_0, _r)\nfinddecl(_arg_0, _h) <- eq(_g, DBool True), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg_0, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), mkUnknownDecl(_h)\nfinddecl(_arg_0, _b_a) <- eq(_g, DBool False), eq(_f, _g), _cons(_b, _e, _f), _head(_a, _b), _tail(_arg_0, _a), _cons(_c, _d, _e), _nil(_c), _nil(_d), eq(_q, DBool False), eq(_p, _q), _cons(_i, _o, _p), _head(_arg_0, _i), _cons(_j, _n, _o), Name(_m, _j), _head(_l, _m), _head(_k, _l), _tail(_arg_0, _k), _nil(_n), finddecl(_a_a, _b_a), _cons(_u, _z, _a_a), _head(_arg_0, _u), _cons(_x, _y, _z), _tail(_w, _x), _head(_v, _w), _tail(_arg_0, _v), _nil(_y)"
   ]

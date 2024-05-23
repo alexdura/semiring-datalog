@@ -29,7 +29,7 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
   testCase "Compute parent attribute 2" $
     let ast = parseAndNumber program1
         path = [0, 1, 0, 0]
-        expr = Node <.> Parent <?> (Nil)
+        expr = Node <.> Parent <?> []
     in
       (nodeId $ evalExpr ast path expr) @?= 2,
 
@@ -37,16 +37,16 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
   testCase "Compute parent attribute 3" $
     let ast = parseAndNumber program1
         path = [0, 1, 0, 0]
-        parent = Parent <?> Nil
-        expr = Func "isUnknown" (Node <.> parent <.> parent <.> parent <.> parent <.> parent)
+        parent = Parent <?> []
+        expr = Func "isUnknown" [Node <.> parent <.> parent <.> parent <.> parent <.> parent]
     in
       evalExpr ast path expr @?= DBool True,
 
   testCase "Compute parent attribute 4" $
     let ast = parseAndNumber program1
         path = [0, 1, 0, 0]
-        parent = Parent <?> Nil
-        expr = Func "isUnknown" (Node <.> parent <.> parent <.> parent <.> parent)
+        parent = Parent <?> []
+        expr = Func "isUnknown" [Node <.> parent <.> parent <.> parent <.> parent]
     in
       evalExpr ast path expr @?= DBool False,
 
@@ -55,14 +55,14 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
   testCase "Local lookup 1" $
     let ast = parseAndNumber program2
         path = []
-        expr = Node <.> LocalLookup <?> (SVal "A")
+        expr = Node <.> LocalLookup <?> [SVal "A"]
     in
       evalExpr ast path expr @?= (DNode $ findNodeByPath ast [0]),
 
   testCase "Local lookup 2" $
     let ast = parseAndNumber program2
         path = []
-        expr = Node <.> LocalLookup <?> (SVal "C")
+        expr = Node <.> LocalLookup <?> [SVal "C"]
     in
       evalExpr ast path expr @?= DNode unknownDecl,
 
@@ -70,29 +70,25 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
   testCase "Parse program 3" $ parseAndNumber program3 @?= program3Ast,
 
   testCase "Lookup_1" $
-    let expr = Node <.> Lookup <?> (Node <.> Name <?> Nil) in
+    let expr = Node <.> Lookup <?> [Node <.> Name <?> []] in
       evalExpr1 program3Ast 6 expr @?= DNode
       AST {kind = ("VarDecl",2), token = "x", children = [
               AST {kind = ("Use",1), token = "bool", children = []}]},
 
   testCase "Lookup_2" $
-    let expr = Node <.> Decl <?> (Nil) in
+    let expr = Node <.> Decl <?> [] in
       (nodeId $ evalExpr1 program3Ast 15 expr) @?= 5,
-
-  -- testCase "Lookup_2_1" $
-  --   let expr = Node <.> Parent <?> Nil <.> Kind <?> (Nil) in
-  --     putStrLn $ evalExprDebug program3Ast 15 expr 100,
 
   testCase "Parse program 4" $ parseAndNumber program4 @?= program4Ast,
 
   testCase "Lookup_3" $
-    let expr = Node <.> Lookup <?> (Node <.> Name <?> Nil) in
+    let expr = Node <.> Lookup <?> [Node <.> Name <?> []] in
       evalExpr1 program4Ast 3 expr @?= DNode
       AST {kind = ("VarDecl",2), token = "x", children = [
               AST {kind = ("Use",1), token = "A", children = []}]},
 
   testCase "Type_1" $
-    let expr = Node <.> Lookup <?> (Node <.> Name <?> Nil) <.> Type <?> Nil in
+    let expr = Node <.> Lookup <?> [Node <.> Name <?> []] <.> Type <?> [] in
       (nodeId $ evalExpr1 program4Ast 3 expr) @?= 7
   ]
 
@@ -110,7 +106,7 @@ nodeId (DNode (AST (_, i) _ _)) = i
 evalExpr ast path expr =
   let n = findNodeByPath ast path
       ctx = makeAttributeCtx (picoJavaProgram ast)
-      (r, log) = evalWithLog ctx (DList []) n expr
+      (r, log) = evalWithLog ctx [DList []] n expr
   in
     case r of
       Left err -> error $ err ++ "\n" ++ prettyLog log
@@ -118,7 +114,7 @@ evalExpr ast path expr =
 
 
 
-prettyLogEntry (LogEntry arg n e r) = "ARG=" ++ prettyDomain arg ++ " NODE="
+prettyLogEntry (LogEntry args n e r) = "ARG=(" ++ (intercalate ", " $ prettyDomain <$> args) ++ ") NODE="
                                       ++ show n.kind ++ " " ++ prettyExpr 0 e ++ " R="
                                       ++ (case r of DNode n -> show n.kind
                                                     _ -> prettyDomain r)
@@ -129,7 +125,7 @@ evalExpr1 :: PicoJavaAST -> Int -> Expr PicoJavaAttr -> Domain (String, Int)
 evalExpr1 ast nid expr =
   let n = fromJust $ findNodeById ast nid
       ctx = makeAttributeCtx (picoJavaProgram ast)
-      (r, log) = evalWithLog ctx (DList []) n expr
+      (r, log) = evalWithLog ctx [DList []] n expr
   in
     case r of
       Left err -> error $ err ++ "\n" ++ prettyLog log
@@ -138,7 +134,7 @@ evalExpr1 ast nid expr =
 evalExprDebug ast nid expr logsize =
   let n = fromJust $ findNodeById ast nid
       ctx = makeAttributeCtx (picoJavaProgram ast)
-      log = take logsize $ snd $ evalWithLog ctx (DList []) n expr
+      log = take logsize $ snd $ evalWithLog ctx [DList []] n expr
   in
     prettyLog log
 

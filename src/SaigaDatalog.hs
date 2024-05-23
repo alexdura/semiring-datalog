@@ -3,6 +3,7 @@ module SaigaDatalog (translateToTerm, translateToClause, SaigaAtom, SaigaTerm, S
 import Datalog
 import Saiga (Domain (..), Expr (..), SaigaElement(..), SaigaAttribute)
 import Control.Monad.State
+import Data.List (isPrefixOf)
 
 type SaigaTerm a = Term (Domain a) Bool
 type SaigaAtom a = Atom (Domain a) Bool
@@ -17,7 +18,7 @@ translateToTermS (IVal n) = return [(Constant $ DInt n, [])]
 translateToTermS (BVal b) = return [(Constant $ DBool b, [])]
 translateToTermS (SVal s) = return  [(Constant $ DString s, [])]
 translateToTermS Node = return [(Variable "_node", [])]
-translateToTermS Arg = return [(Variable "_arg", [])]
+translateToTermS (Arg n) = return [(Variable $ "_arg_" ++ show n, [])]
 translateToTermS (IfElse c t f) = do
   -- compute translation within the State monad
   cs <- translateToTermS c
@@ -31,14 +32,13 @@ translateToTermS (IfElse c t f) = do
     [(tvar, [equals cvar (Constant $ DBool True)] ++ cs' ++ ts'),
      (fvar, [equals cvar (Constant $ DBool False)] ++ cs' ++ fs')]
 
-translateToTermS (Func name arg) = do
-  args <- translateToTermS arg
-  mapM (\arg' -> do
-           names <- get
-           put $ tail names
-           let fvar = Variable $ head names
-           return (fvar, Literal name [fst arg', fvar] id : snd arg'))
-    args
+translateToTermS (Func name args) = do
+  args'  <- mapM translateToTermS args -- :: [[(SaigaTerm a, [SaigaAtom a])]]
+  names <- get
+  put $ tail names
+  let fvar = Variable $ head names
+  return $ map (\arg -> (fvar, Literal name (map fst arg ++ [fvar]) id : (concatMap snd arg))) (sequence args')
+
 
 translateToTermS (Head e) = do
   es <- translateToTermS e
@@ -71,29 +71,29 @@ translateToTermS Nil = do
   let fvar = Variable $ head names
   return [(fvar, [Literal "_nil" [fvar] id])]
 
-translateToTermS (Attr n attr arg) = do
+translateToTermS (Attr n attr args) = do
   names <- get
   put $ tail names
   let fvar = Variable $ head names
   ns <- translateToTermS n
-  args <- translateToTermS arg
-  return [(fvar, lit (show attr) [fst args', fst args', fvar] : (snd args') ++ (snd ns')) | args' <- args, ns' <- ns]
+  args' <- mapM translateToTermS args
+  return $ map (\arg -> (fvar, lit (show attr) (map fst arg ++ [fvar]) : (concatMap snd arg))) (sequence (ns : args'))
 
 translateToTerm :: (SaigaAttribute attr, Eq a) => Expr attr -> [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
 
-reservedNames :: [String]
-reservedNames = ["_node", "_arg", "_nil", "_head", "_tail", "_cons"]
+reservedName :: String -> Bool
+reservedName n = any (`isPrefixOf` n) ["_node", "_arg", "_nil", "_head", "_tail", "_cons"]
 
 freshVarNames :: [String]
-freshVarNames = ['_' : p : v | v <- "":freshVarNames, p <- ['a'..'z'], ('_' : p : v) `notElem` reservedNames]
+freshVarNames = ['_' : p : v | v <- "":freshVarNames, p <- ['a'..'z'], not $ reservedName ('_' : p : v)]
 
 translateToClauseS :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> State [String] [SaigaClause a]
-translateToClauseS (Saiga.Function name e) =  do
+translateToClauseS (Saiga.Function name nargs e) =  do
   es <- translateToTermS e
-  return [[lit name [(var "_arg"), v]] += t | (v, t) <- es]
+  return [[lit name $ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
 
-translateToClauseS (Attribute attr e)= do
+translateToClauseS (Attribute attr nargs e)= do
   es <- translateToTermS e
   return [[lit (show attr) [var "_node", var "_arg", v]] += t | (v, t) <- es]
 
