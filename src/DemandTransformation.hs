@@ -1,4 +1,4 @@
-module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern) where
+module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -96,17 +96,46 @@ genDemandLiteral :: Atom a s -- original atom
 genDemandLiteral (Literal p ts f) dp =
   let name = "d_" ++ p ++ "_" ++ [if i `Set.member` dp then 'b' else 'f' | i <- [0..length ts - 1]]
       ts' = (ts !! ) <$> Set.toAscList dp in
-    Literal p ts' f
+    Literal name ts' f
 genDemandLiteral a _ = a
 
 genDemandRules :: Atom a s -- head atom
                -> DemandPattern -- head demand
                -> [Atom a s] -- body atoms
+               -> (Predicate -> Bool) -- is EDB predicate?
                -> [Clause a s]
 
-genDemandRules _ _ [] = []
-genDemandRules h@(Literal p ts _) hdp bs =
+genDemandRules _ _ [] _ = []
+genDemandRules h@(Literal p ts _) hdp bs isEDB =
   let boundVars = headDemandedVars h hdp
       bodyDemand = zip3 (tails bs) (inits bs) (bodyDemandPatterns boundVars bs) in
-    concatMap (\((h_i:_), hs, dp) -> case h_i of Literal {} -> [Clause [(genDemandLiteral h_i dp)] (genDemandLiteral h hdp : hs)]
+    Clause [h] (genDemandLiteral h hdp : bs) :
+    concatMap (\((h_i:_), hs, dp) -> case h_i of Literal p _ _  -> if (isEDB p) then [] -- no demand for EDB predicates
+                                                                   else [Clause [(genDemandLiteral h_i dp)] (genDemandLiteral h hdp : hs)]
                                                  _ -> []) bodyDemand
+
+flattenProgram :: Program a s
+               -> Program a s -- a program where all the clauses have a single literal in the head
+flattenProgram (Program cs) = Program $ concatMap flattenClause cs
+
+flattenClause :: Clause a s -> [Clause a s]
+flattenClause (Clause hs bs) = map (\h -> Clause [h] bs) hs
+
+idbPredicates :: Program a s -> Set Predicate
+idbPredicates (Program cs) =
+  let idbPredicatesForClause (Clause hs ts) = if null ts then []
+                                              else concatMap (\(Literal p _ _) -> [p]) hs
+  in Set.fromList $ concatMap idbPredicatesForClause cs
+
+transformProgram :: Program a s
+                 -> PredicateDemand -- initial demand
+                 -> Program a s
+
+transformProgram p ipd =
+  let flatp@(Program cs) = flattenProgram p
+      pd = programPredicateDemand p ipd
+      isEDB pred = not $ Set.member pred (idbPredicates flatp)
+      transformClause c@(Clause [h@(Literal p ts _)] bs) = if null bs then [c] -- this is a fact, nothing to do here
+                                                           else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
+                                                                  concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
+  in Program $ concatMap transformClause cs

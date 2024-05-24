@@ -1,5 +1,5 @@
 module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, (+=),
-                var, cst, lit, val, expr, prettyProgram, prettyAtom, prettyTerm) where
+                var, cst, lit, val, expr, prettyProgram, prettyAtom, prettyTerm, prettyClause) where
 
 
 import Data.List
