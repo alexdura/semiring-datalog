@@ -13,4 +13,5 @@ main = defaultMain $ testGroup "all" [
   picoJavaTests,
   saigaPicoJavaTests,
   saigaDatalogTests,
-  demandTransformationTests]
+  demandTransformationTests
+  ]

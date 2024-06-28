@@ -10,8 +10,7 @@ data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b]}
 
 data Atom a b = Literal Predicate [Term a b] (b -> b)
               | Value b
-              | Function [Term a b] ([a] -> b)
-
+              | Function String [Term a b] ([a] -> b)
 
 data Term a b = Variable String
               | Constant a
@@ -23,7 +22,7 @@ type Predicate = String
 
 prettyAtom (Literal p ts _) = p ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 prettyAtom (Value b) = show b
-prettyAtom (Function ts _) = "__builtin_function__" ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
+prettyAtom (Function name ts _) = name ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = v

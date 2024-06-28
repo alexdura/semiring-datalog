@@ -1,0 +1,3 @@
+finddecl(_arg_0, _arg_1, _b) <- _builtin_eq(_arg_1, _a), _nil(_a), mkUnknownDecl(_b)
+finddecl(_arg_0, _arg_1, _e) <- _builtin_neq(_arg_1, _a), _nil(_a), _builtin_eq(_arg_0, _c), Name(_d, _c), _head(_arg_1, _d), _head(_arg_1, _e)
+finddecl(_arg_0, _arg_1, _g) <- _builtin_neq(_arg_1, _a), _nil(_a), _builtin_neq(_arg_0, _c), Name(_d, _c), _head(_arg_1, _d), finddecl(_arg_0, _f, _g), _tail(_arg_1, _f)

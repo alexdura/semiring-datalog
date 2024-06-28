@@ -85,8 +85,3 @@ p2 =
     [path [x, y]] += [edge [x, y]],
     [path [x, y]] += [path [x, z], edge [z, y]]
     ]
-
-
-
-initialDemand :: Predicate -> DemandPattern -> PredicateDemand
-initialDemand p d = Map.fromList [(p, Set.fromList [d])]

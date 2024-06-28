@@ -56,13 +56,13 @@ immediateConsequence' [] (b, v) = return [(b, v)]
 immediateConsequence' (a:as) (b, v) = do
   bindingsNext <- case a of Literal {} -> lookupLiteral a b
                             Value s -> return [(b, s)]
-                            f@(Function _ _) -> return [(b, applyFunction b f)]
+                            f@(Function {}) -> return [(b, applyFunction b f)]
   r <- mapM (immediateConsequence' as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
   return $ concat r
 
 
 applyFunction :: Binding a -> Atom a s -> s
-applyFunction b (Function ts f) =
+applyFunction b (Function _ ts f) =
   let args = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                         (Constant c) -> c
                         (Expr _ _) -> error "No Expr in Function") ts

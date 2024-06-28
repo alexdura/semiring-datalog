@@ -1,4 +1,4 @@
-module SaigaDatalog (translateToTerm, translateToClause, SaigaAtom, SaigaTerm, SaigaClause) where
+module SaigaDatalog (translateToTerm, translateToClause, translateProgram, SaigaAtom, SaigaTerm, SaigaClause) where
 
 import Datalog
 import Saiga (Domain (..), Expr (..), SaigaElement(..), SaigaAttribute)
@@ -8,10 +8,13 @@ import Data.List (isPrefixOf)
 type SaigaTerm a = Term (Domain a) Bool
 type SaigaAtom a = Atom (Domain a) Bool
 type SaigaClause a = Clause (Domain a) Bool
+type SaigaDatalogProgram a = Program (Domain a) Bool
 
 equals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
--- equals x y = Datalog.Function [x, y] (\[x', y']-> x' == y')
-equals x y = Literal "_builtin_eq" [x, y] id
+equals x y = Datalog.Function "_builtin_eq" [x, y] (\[x', y'] -> x' == y')
+
+notEquals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
+notEquals x y = Datalog.Function "_builtin_neq" [x, y] (\[x', y'] -> x' /= y')
 
 translateToTermS :: (SaigaAttribute attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
 translateToTermS (IVal n) = return [(Constant $ DInt n, [])]
@@ -24,13 +27,32 @@ translateToTermS (IfElse c t f) = do
   cs <- translateToTermS c
   ts <- translateToTermS t
   fs <- translateToTermS f
-  return $ do
-    -- combine the results in the List monad
-    (cvar, cs') <- cs
-    (tvar, ts') <- ts
-    (fvar, fs') <- fs
-    [(tvar, [equals cvar (Constant $ DBool True)] ++ cs' ++ ts'),
-     (fvar, [equals cvar (Constant $ DBool False)] ++ cs' ++ fs')]
+  let trueTranslation = do
+        (cvar, cs') <- cs
+        (tvar, ts') <- ts
+        return (tvar, [equals cvar (Constant $ DBool True)] ++ cs' ++ ts')
+      falseTranslation = do
+        (cvar, cs') <- cs
+        (fvar, fs') <- fs
+        return (fvar, [equals cvar (Constant $ DBool False)] ++ cs' ++ fs')
+  return $ trueTranslation ++ falseTranslation
+
+translateToTermS (IfEq e1 e2 t f) = do
+  e1s <- translateToTermS e1
+  e2s <- translateToTermS e2
+  ts <- translateToTermS t
+  fs <- translateToTermS f
+  let trueTranslation = do
+        (e1var, e1s') <- e1s
+        (e2var, e2s') <- e2s
+        (tvar, ts') <- ts
+        return (tvar, [equals e1var e2var] ++ e1s' ++ e2s' ++ ts')
+      falseTranslation = do
+        (e1var, e1s') <- e1s
+        (e2var, e2s') <- e2s
+        (fvar, fs') <- fs
+        return (fvar, [notEquals e1var e2var] ++ e1s' ++ e2s' ++ fs')
+  return $ trueTranslation ++ falseTranslation
 
 translateToTermS (Func name args) = do
   args'  <- mapM translateToTermS args -- :: [[(SaigaTerm a, [SaigaAtom a])]]
@@ -79,7 +101,9 @@ translateToTermS (Attr n attr args) = do
   args' <- mapM translateToTermS args
   return $ map (\arg -> (fvar, lit (show attr) (map fst arg ++ [fvar]) : (concatMap snd arg))) (sequence (ns : args'))
 
-translateToTerm :: (SaigaAttribute attr, Eq a) => Expr attr -> [(SaigaTerm a, [SaigaAtom a])]
+translateToTerm :: (SaigaAttribute attr, Eq a) =>
+                   Expr attr ->
+                   [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
 
 reservedName :: String -> Bool
@@ -95,9 +119,12 @@ translateToClauseS (Saiga.Function name nargs e) =  do
 
 translateToClauseS (Attribute attr nargs e)= do
   es <- translateToTermS e
-  return [[lit (show attr) [var "_node", var "_arg", v]] += t | (v, t) <- es]
+  return [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
 
 translateToClauseS _ = return []
 
 translateToClause :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> [SaigaClause a]
 translateToClause el = evalState (translateToClauseS el) freshVarNames
+
+translateProgram :: (SaigaAttribute attr, Eq a) => [SaigaElement attr a] -> SaigaDatalogProgram a
+translateProgram = Program . concatMap translateToClause

@@ -1,4 +1,4 @@
-module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram) where
+module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram, initialDemand) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -139,3 +139,6 @@ transformProgram p ipd =
                                                            else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
                                                                   concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
   in Program $ concatMap transformClause cs
+
+initialDemand :: Predicate -> DemandPattern -> PredicateDemand
+initialDemand p d = Map.fromList [(p, Set.fromList [d])]

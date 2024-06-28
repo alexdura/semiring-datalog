@@ -93,7 +93,7 @@ superclassAttr = Attribute Superclass 0 $
 typeAttr = Attribute Type 0 $
   let decl = Decl <?> []
       access = Child <?> [int 0]
-      kind = Kind <?> [nil]
+      kind = Kind <?> []
   in
     guard [(Node <.> kind === "ClassDecl", Node),
            (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknownClass),
@@ -129,8 +129,8 @@ findDeclExpr :: Expr PicoJavaAttr
 findDeclExpr =
   let arg0 = Arg 0
       arg1 = Arg 1
-  in IfElse (arg1 === Nil) mkUnknownDecl
-     (IfElse (arg0 === ((Head arg1) <.> Name <?> [])) (Head arg1) (Func "finddecl" [arg0, Tail arg1]))
+  in IfEq arg1 Nil mkUnknownDecl
+     (IfEq arg0 ((Head arg1) <.> Name <?> []) (Head arg1) (Func "finddecl" [arg0, Tail arg1]))
 
 picoJavaProgram ast =
   let pm = parentMap ast in [

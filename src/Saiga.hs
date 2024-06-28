@@ -11,6 +11,7 @@ import Control.Monad.Writer hiding (guard)
 import Control.Monad.Except hiding (guard)
 import Data.List (intercalate, find, singleton)
 
+
 data Expr a = IVal Int
             | BVal Bool
             | SVal String
@@ -21,6 +22,7 @@ data Expr a = IVal Int
             | Attr (Expr a) a [Expr a]
             | Func String [Expr a]
             | IfElse (Expr a) (Expr a) (Expr a)
+            | IfEq (Expr a) (Expr a) (Expr a) (Expr a)
             | Arg Int
             | Node
             deriving (Show, Eq)
@@ -147,17 +149,22 @@ infixr 3 <&&>
 not e = IfElse e (BVal False) (BVal True)
 
 
-equal = Func "eq"
 infix 4 ===
-(===) l r = equal [l, r]
+(===) :: Expr a -> Expr a -> Expr a
+(===) l r = IfEq l r (BVal True) (BVal False)
 
 
 otherwise :: Expr a
 otherwise = BVal True
 
 guard :: [(Expr a, Expr a)] -> Expr a
+-- optimize the case when the condition is ===
+guard [(IfEq l r (BVal True) (BVal False), expr0), (BVal True, expr1)] = IfEq l r expr0 expr1
+guard ((IfEq l r (BVal True) (BVal False), expr0) : gs) = IfEq l r expr0 (guard gs)
+-- general case
 guard [(cond0, expr0), (BVal True, expr1)] = IfElse cond0 expr0 expr1
 guard ((cond0, expr0) : gs) = IfElse cond0 expr0 (guard gs)
+
 
 isUnknown = Func "isUnknown"
 ifOK tExpr fExpr = IfElse (isUnknown [tExpr]) fExpr tExpr
@@ -192,7 +199,8 @@ data AttributeCtx attr a = AttributeCtx {
 
 data LogEntry attr a = LogEntry [Domain a] (AST a) (Expr attr) (Domain a)
 
-evalM :: AttributeCtx attr a -- context
+evalM :: Eq a =>
+         AttributeCtx attr a -- context
       -> [Domain a] -- argument values
       -> AST a -- current node
       -> Expr attr -- expression
@@ -251,7 +259,13 @@ evalM ctx args n e@(IfElse c t f) = do
   case c' of
     (DBool True) -> evalM ctx args n t
     (DBool False) -> evalM ctx args n f
-    r -> logErr args n e $ "If condition must evalMuate to a boolean value."
+    r -> logErr args n e $ "If condition must evaluate to a boolean value."
+
+evalM ctx args n e@(IfEq l r t f) = do
+  l' <- evalM ctx args n l
+  r' <- evalM ctx args n r
+  if l' == r' then evalM ctx args n t
+    else evalM ctx args n f
 
 evalM ctx args n expr@(Func name es) = do
   args' <- mapM (evalM ctx args n) es
@@ -274,7 +288,8 @@ evalM ctx argb n e@(Attr b attr args) = do
     _ -> logErr argb n e "Only AST nodes have attributes."
 
 
-evalWithLog :: AttributeCtx attr a -- context
+evalWithLog :: Eq a =>
+               AttributeCtx attr a -- context
             -> [Domain a] -- argument values
             -> AST a -- current node
             -> Expr attr -- expression
