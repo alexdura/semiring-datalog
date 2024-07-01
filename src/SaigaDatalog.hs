@@ -30,11 +30,11 @@ translateToTermS (IfElse c t f) = do
   let trueTranslation = do
         (cvar, cs') <- cs
         (tvar, ts') <- ts
-        return (tvar, [equals cvar (Constant $ DBool True)] ++ cs' ++ ts')
+        return (tvar, cs' ++ [equals cvar (Constant $ DBool True)] ++ ts')
       falseTranslation = do
         (cvar, cs') <- cs
         (fvar, fs') <- fs
-        return (fvar, [equals cvar (Constant $ DBool False)] ++ cs' ++ fs')
+        return (fvar, cs' ++ [equals cvar (Constant $ DBool False)] ++ fs')
   return $ trueTranslation ++ falseTranslation
 
 translateToTermS (IfEq e1 e2 t f) = do
@@ -46,12 +46,12 @@ translateToTermS (IfEq e1 e2 t f) = do
         (e1var, e1s') <- e1s
         (e2var, e2s') <- e2s
         (tvar, ts') <- ts
-        return (tvar, [equals e1var e2var] ++ e1s' ++ e2s' ++ ts')
+        return (tvar,  e1s' ++ e2s' ++ [equals e1var e2var] ++ ts')
       falseTranslation = do
         (e1var, e1s') <- e1s
         (e2var, e2s') <- e2s
         (fvar, fs') <- fs
-        return (fvar, [notEquals e1var e2var] ++ e1s' ++ e2s' ++ fs')
+        return (fvar,  e1s' ++ e2s' ++ [notEquals e1var e2var] ++ fs')
   return $ trueTranslation ++ falseTranslation
 
 translateToTermS (Func name args) = do
@@ -59,22 +59,29 @@ translateToTermS (Func name args) = do
   names <- get
   put $ tail names
   let fvar = Variable $ head names
-  return $ map (\arg -> (fvar, Literal name (map fst arg ++ [fvar]) id : (concatMap snd arg))) (sequence args')
+  return $ map (\arg -> (fvar, (concatMap snd arg) ++ [lit name (map fst arg ++ [fvar])])) (sequence args')
 
+translateToTermS (Attr n attr args) = do
+  names <- get
+  put $ tail names
+  let fvar = Variable $ head names
+  ns <- translateToTermS n
+  args' <- mapM translateToTermS args
+  return $ map (\arg -> (fvar, (concatMap snd arg) ++ [lit (show attr) (map fst arg ++ [fvar])])) (sequence (ns : args'))
 
 translateToTermS (Head e) = do
   es <- translateToTermS e
   names <- get
   let fvar = Variable $ head names
   put $ tail names
-  return $ [(fvar, Literal "_head" [evar, fvar] id : es') | (evar, es') <- es]
+  return $ [(fvar, es' ++ [Literal "_head" [evar, fvar] id]) | (evar, es') <- es]
 
 translateToTermS (Tail e) = do
   es <- translateToTermS e
   names <- get
   let fvar = Variable $ head names
   put $ tail names
-  return $ [(fvar, Literal "_tail" [evar, fvar] id : es') | (evar, es') <- es]
+  return $ [(fvar, es' ++ [Literal "_tail" [evar, fvar] id]) | (evar, es') <- es]
 
 translateToTermS (Cons h t) = do
   hs <- translateToTermS h
@@ -85,7 +92,7 @@ translateToTermS (Cons h t) = do
   return $ do
     (hvar, hs') <- hs
     (tvar, ts') <- ts
-    return (fvar, [Literal "_cons" [hvar,  tvar, fvar] id] ++ hs' ++ ts')
+    return (fvar, hs' ++ ts' ++ [Literal "_cons" [hvar,  tvar, fvar] id])
 
 translateToTermS Nil = do
   names <- get
@@ -93,13 +100,6 @@ translateToTermS Nil = do
   let fvar = Variable $ head names
   return [(fvar, [Literal "_nil" [fvar] id])]
 
-translateToTermS (Attr n attr args) = do
-  names <- get
-  put $ tail names
-  let fvar = Variable $ head names
-  ns <- translateToTermS n
-  args' <- mapM translateToTermS args
-  return $ map (\arg -> (fvar, lit (show attr) (map fst arg ++ [fvar]) : (concatMap snd arg))) (sequence (ns : args'))
 
 translateToTerm :: (SaigaAttribute attr, Eq a) =>
                    Expr attr ->

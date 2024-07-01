@@ -38,7 +38,8 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
     let ast = parseAndNumber program1
         path = [0, 1, 0, 0]
         parent = Parent <?> []
-        expr = Func "isUnknown" [Node <.> parent <.> parent <.> parent <.> parent <.> parent]
+        isUnknown = IsUnknown <?> []
+        expr = Node <.> parent <.> parent <.> parent <.> parent <.> parent <.> isUnknown
     in
       evalExpr ast path expr @?= DBool True,
 
@@ -46,7 +47,8 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
     let ast = parseAndNumber program1
         path = [0, 1, 0, 0]
         parent = Parent <?> []
-        expr = Func "isUnknown" [Node <.> parent <.> parent <.> parent <.> parent]
+        isUnknown = IsUnknown <?> []
+        expr = Node <.> parent <.> parent <.> parent <.> parent <.> isUnknown
     in
       evalExpr ast path expr @?= DBool False,
 

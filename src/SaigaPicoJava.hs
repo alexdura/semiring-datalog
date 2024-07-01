@@ -20,6 +20,7 @@ data PicoJavaAttr = Decl
                   | Name
                   | Superclass
                   | Type
+                  | IsUnknown
                   deriving (Eq, Show, Enum)
 
 instance SaigaAttribute PicoJavaAttr
@@ -29,7 +30,22 @@ hasKind = Node <.> Kind <?> []
 
 predefs = Func "predefs" []
 
+isUnknownAttr :: SaigaElement PicoJavaAttr a
+isUnknownAttr = Attribute IsUnknown 0 $
+  let name = Name <?> []
+  in
+    Node <.> name === "_unknown_"
+
+ifOK :: Expr PicoJavaAttr -> Expr PicoJavaAttr -> Expr PicoJavaAttr
+ifOK tExpr fExpr =
+  let
+    isUnknown = IsUnknown <?> []
+  in
+    IfElse (tExpr <.> isUnknown) fExpr tExpr
+
+
 -- attribute definitions - Figure 15
+declAttr :: SaigaElement PicoJavaAttr a
 declAttr = Attribute Decl 0 $
   let use = Child <?> [int 1]
       name = Name <?> []
@@ -39,7 +55,7 @@ declAttr = Attribute Decl 0 $
            (hasKind === (SVal "Use"), Node <.> Lookup <?> [Node <.> name]), -- L2
            (otherwise, mkUnknownDecl)] -- L3
 
-
+lookupAttr :: SaigaElement PicoJavaAttr a
 lookupAttr = Attribute Lookup 1 $
   let parent = Parent <?> []
       superclass = Superclass <?> []
@@ -49,6 +65,7 @@ lookupAttr = Attribute Lookup 1 $
       kind = Kind <?> []
       access = Child <?> [int 0]
       rhs = Child <?> [int 1]
+      isUnknown = IsUnknown <?> []
   in
     guard [(hasKind === "Program", Node <.> LocalLookup <?> [Arg 0]), -- L4
             (hasKind === "Block", ifOK (Node <.> LocalLookup <?> [Arg 0]) -- L5
@@ -57,10 +74,11 @@ lookupAttr = Attribute Lookup 1 $
             (hasKind === "Use" <&&>
              (Node <.> parent <.> kind === "Dot") <&&>
              (Node <.> parent <.> rhs === Node), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> [Arg 0]), -- L6
-            (isUnknown [Node], mkUnknownDecl), -- L7
+            (Node <.> isUnknown, mkUnknownDecl), -- L7
             (otherwise, Node <.> parent <.> Lookup <?> [Arg 0])] -- L8
 
 
+localLookupAttr :: SaigaElement PicoJavaAttr a
 localLookupAttr = Attribute LocalLookup 1 $
   let items = Children <?> []
   in
@@ -69,24 +87,28 @@ localLookupAttr = Attribute LocalLookup 1 $
            (hasKind === "Block", Func "finddecl" [Arg 0, Node <.> items]),
            (otherwise, mkUnknownDecl)]
 
-
+remoteLookup :: SaigaElement PicoJavaAttr a
 remoteLookup = Attribute RemoteLookup 1 $
     let parent = Parent <?> []
         superclass = Superclass <?> []
         block = Child <?> [int 1]
+        isUnknown = IsUnknown <?> []
+
     in
       guard [(hasKind === "Block", ifOK (Node <.> LocalLookup <?> [Arg 0])
-                                   (IfElse (isUnknown [Node <.> parent <.> superclass]) mkUnknownDecl
+                                   (IfElse (Node <.> parent <.> superclass <.> isUnknown) mkUnknownDecl
                                      (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> [Arg 0]) mkUnknownDecl))),
              (otherwise, mkUnknownDecl)]
 
 
+superclassAttr :: SaigaElement PicoJavaAttr a
 superclassAttr = Attribute Superclass 0 $
   let use = Child <?> [int 1]
       kind = Kind <?> []
       decl = Decl <?> []
+      isUnknown = IsUnknown <?> []
   in
-    guard [(hasKind === "ClassDecl" <&&> not (isUnknown [Node <.> use]), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknownClass),
+    guard [(hasKind === "ClassDecl" <&&> not (Node <.> use <.> isUnknown), IfElse (Node <.> use <.> decl <.> kind === "ClassDecl") (Node <.> use <.> decl) mkUnknownClass),
            (otherwise, mkUnknownClass)]
 
 
@@ -140,6 +162,7 @@ picoJavaProgram ast =
     remoteLookup,
     localLookupAttr,
     superclassAttr,
+    isUnknownAttr,
 
     BuiltinAttribute Parent 0 $
       \(DNode n) -> let p = Map.lookup n pm in
@@ -165,17 +188,9 @@ picoJavaProgram ast =
     BuiltinFunction "predefs" 0 $
       \_ -> DList [DNode boolDecl],
 
-    BuiltinFunction "isUnknown" 1 $
-      \case
-        [DNode n] -> DBool $ n.token == "_unknown_"
-        e -> error $ "Unexpected argument " ++ show e,
-
     BuiltinFunction "mkUnknownDecl" 0 $
       const $ DNode unknownDecl,
 
     BuiltinFunction "mkUnknownClass" 0 $
-      const $ DNode unknownClass,
-
-    BuiltinFunction "eq" 2 $
-      \[x, y] -> DBool $ x == y
+      const $ DNode unknownClass
     ]

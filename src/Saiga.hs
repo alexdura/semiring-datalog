@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Saiga(prettyExpr, Expr(..), AttributeDef(..), SaigaElement(..), SaigaProgram, SaigaAttribute, (<?>),
-             (<.>), (===), (<&&>), (<:>), guard, otherwise, ifOK, isUnknown, int, nil, not,
+             (<.>), (===), (<&&>), (<:>), guard, otherwise,  int, nil, not,
              Domain(..), prettyDomain, AttributeCtx, makeAttributeCtx, evalWithLog, LogEntry(..)) where
 
 import Prelude hiding (otherwise, not, log)
@@ -164,11 +164,6 @@ guard ((IfEq l r (BVal True) (BVal False), expr0) : gs) = IfEq l r expr0 (guard 
 -- general case
 guard [(cond0, expr0), (BVal True, expr1)] = IfElse cond0 expr0 expr1
 guard ((cond0, expr0) : gs) = IfElse cond0 expr0 (guard gs)
-
-
-isUnknown = Func "isUnknown"
-ifOK tExpr fExpr = IfElse (isUnknown [tExpr]) fExpr tExpr
-
 
 -- domain of values
 data Domain a = DInt Int
