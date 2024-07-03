@@ -99,7 +99,15 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   in
     goldenProgramTest "Translate the type attribute and apply the demand transformation" dlTypeAttrDemand
     "testfiles/SaigaDatalog/type-demand.dl.golden"
-    "testfiles/SaigaDatalog/type-demand.dl.out"
+    "testfiles/SaigaDatalog/type-demand.dl.out",
 
-
+  -- list predicates not defined in the file
+  let dlPicoJava = translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+      preds = predicates dlPicoJava
+      idbPreds = idbPredicates dlPicoJava
+      edbPreds = Set.difference preds idbPreds
+  in
+    testCase "List EDB predicates" $ edbPreds @?= Set.fromList ["Child","Children","Kind","Name",
+                                                                "Parent","_head","_nil","_tail",
+                                                                "mkUnknownClass","mkUnknownDecl","predefs"]
   ]

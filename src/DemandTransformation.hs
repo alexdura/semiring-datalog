@@ -1,4 +1,5 @@
-module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram, initialDemand) where
+module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram,
+                             initialDemand, predicates, idbPredicates) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -123,9 +124,17 @@ flattenClause (Clause hs bs) = map (\h -> Clause [h] bs) hs
 
 idbPredicates :: Program a s -> Set Predicate
 idbPredicates (Program cs) =
-  let idbPredicatesForClause (Clause hs ts) = if null ts then []
+  let idbPredicatesForClause (Clause hs bs) = if null bs then []
                                               else concatMap (\(Literal p _ _) -> [p]) hs
   in Set.fromList $ concatMap idbPredicatesForClause cs
+
+predicates :: Program a s -> Set Predicate
+predicates (Program cs) =
+  let predicatesForClause (Clause hs bs) = concatMap (\case
+                                                         Literal p _ _  -> [p]
+                                                         _ -> [])
+                                           (hs ++ bs)
+  in Set.fromList $ concatMap predicatesForClause cs
 
 transformProgram :: Program a s
                  -> PredicateDemand -- initial demand
