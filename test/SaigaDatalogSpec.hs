@@ -74,6 +74,12 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
     "testfiles/SaigaDatalog/attribute.dl.out",
 
   --
+  goldenProgramTest "Translate LocalLookup"
+    (Program $ translateToClause' SaigaPicoJava.localLookupAttr)
+    "testfiles/SaigaDatalog/localLookup.dl.golden"
+    "testfiles/SaigaDatalog/localLookup.dl.out",
+
+  --
   goldenProgramTest "Translate whole PicoJava program"
     (translateProgram (SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl))
     "testfiles/SaigaDatalog/picojava.dl.golden"
@@ -101,13 +107,63 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
     "testfiles/SaigaDatalog/type-demand.dl.golden"
     "testfiles/SaigaDatalog/type-demand.dl.out",
 
-  -- list predicates not defined in the file
-  let dlPicoJava = translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+  -- translate the localLookup program
+  let dlLocalLookup = translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
+  in goldenProgramTest "Translate the localLookup program" dlLocalLookup
+    "testfiles/SaigaDatalog/localLookupProgram.dl.golden"
+    "testfiles/SaigaDatalog/localLookupProgram.dl.out",
+
+  -- translate the localLookup program
+  let dlLocalLookup = translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
+      dlLocalLookupDemand = transformProgram dlLocalLookup (initialDemand "LocalLookup" (Set.fromList [0, 1]))
+  in goldenProgramTest "Translate the demand-transformed localLookup program" dlLocalLookupDemand
+    "testfiles/SaigaDatalog/localLookupProgram-demand.dl.golden"
+    "testfiles/SaigaDatalog/localLookupProgram-demand.dl.out",
+
+  -- list predicates not defined in the Saiga/PicoJava program (i.e. EDB predicates)
+  let dlPicoJava = flattenProgram $ translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
       preds = predicates dlPicoJava
       idbPreds = idbPredicates dlPicoJava
       edbPreds = Set.difference preds idbPreds
   in
-    testCase "List EDB predicates" $ edbPreds @?= Set.fromList ["Child","Children","Kind","Name",
-                                                                "Parent","_head","_nil","_tail",
-                                                                "mkUnknownClass","mkUnknownDecl","predefs"]
+    testCase "List EDB predicates" $ edbPreds @?= edbPredsPicoJava,
+
+  -- list predicates not defined in the transformed Saiga/PicoJava program (i.e. EDB predicates); they
+  -- should be the same as for the original program
+  let dlPicoJava = translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+      dlPicoJavaDemand = transformProgram dlPicoJava (initialDemand "Type" (Set.fromList [0]))
+      preds = predicates dlPicoJavaDemand
+      idbPreds = idbPredicates dlPicoJavaDemand
+      edbPreds = Set.difference preds idbPreds
+  in
+    testCase "List EDB predicates in demand-transformed program" $ edbPreds @?= edbPredsPicoJava,
+
+  --
+  let dlLocalLookup = flattenProgram $ translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
+      preds = predicates dlLocalLookup
+      idbPreds = idbPredicates dlLocalLookup
+      edbPreds = Set.difference preds idbPreds
+  in
+    testCase "List EDB predicates is LocalLookup program" $ edbPreds @?=
+    Set.fromList ["Children","Kind","Name",
+                  "_head","_nil","_tail",
+                  "mkUnknownDecl","predefs"],
+
+  --
+  let dlLocalLookup = translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
+      dlLocalLookupDemand = transformProgram dlLocalLookup (initialDemand "LocalLookup" (Set.fromList [0, 1]))
+      preds = predicates dlLocalLookupDemand
+      idbPreds = idbPredicates dlLocalLookupDemand
+      edbPreds = Set.difference preds idbPreds
+  in
+    testCase "List EDB predicates is demand-transformed LocalLookup program" $ edbPreds @?=
+    Set.fromList ["Children","Kind","Name",
+                  "_head","_nil","_tail",
+                  "mkUnknownDecl","predefs", "d_LocalLookup_bbf"]
   ]
+
+
+edbPredsPicoJava = Set.fromList ["Child","Children","Kind","Name",
+                                  "Parent",
+                                  "_head","_nil","_tail",
+                                  "mkUnknownClass","mkUnknownDecl","predefs"]

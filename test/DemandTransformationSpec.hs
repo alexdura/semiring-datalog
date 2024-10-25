@@ -2,6 +2,8 @@ module DemandTransformationSpec (demandTransformationTests) where
 
 import Datalog
 import DemandTransformation
+import SaigaPicoJava
+import SaigaDatalog
 
 import Test.Tasty (testGroup)
 import Test.Tasty.HUnit ( testCase, (@?=) )
@@ -19,6 +21,26 @@ z = var "z"
 isEDB p | p == "edge" = True
         | otherwise = False
 
+expectedDemandPicoJava = Map.fromList [("Child",Set.fromList [Set.fromList [0]]),
+                                        ("Children",Set.fromList [Set.fromList [0]]),
+                                        ("Decl",Set.fromList [Set.fromList [0]]),
+                                        ("IsUnknown",Set.fromList [Set.fromList [0]]),
+                                        ("Kind",Set.fromList [Set.fromList [0]]),
+                                        ("LocalLookup",Set.fromList [Set.fromList [0,1]]),
+                                        ("Lookup",Set.fromList [Set.fromList [0,1]]),
+                                        ("Name",Set.fromList [Set.fromList [0]]),
+                                        ("Parent",Set.fromList [Set.fromList [0]]),
+                                        ("RemoteLookup",Set.fromList [Set.fromList [0,1]]),
+                                        ("Superclass",Set.fromList [Set.fromList [0]]),
+                                        ("Type",Set.fromList [Set.fromList [0]]),
+                                        ("_head",Set.fromList [Set.fromList [0]]),
+                                        ("_nil",Set.fromList [Set.fromList []]),
+                                        ("_tail",Set.fromList [Set.fromList [0]]),
+                                        ("finddecl",Set.fromList [Set.fromList [0,1]]),
+                                        ("mkUnknownClass",Set.fromList [Set.fromList []]),
+                                        ("mkUnknownDecl",Set.fromList [Set.fromList []]),
+                                        ("predefs",Set.fromList [Set.fromList []])]
+
 demandTransformationTests = testGroup "Demand Transformation" [
   testCase "Compute demand of transitive closure program" $ programPredicateDemand p1 (initialDemand "path" (Set.fromList [0])) @?=
     Map.fromList [("edge",Set.fromList [Set.fromList [0]]),
@@ -27,6 +49,25 @@ demandTransformationTests = testGroup "Demand Transformation" [
   testCase "Compute demand of transitive closure program" $ programPredicateDemand p1 (initialDemand "path" (Set.fromList [1])) @?=
     Map.fromList [("edge",Set.fromList [Set.fromList [],Set.fromList [0],Set.fromList [0,1],Set.fromList [1]]),
                   ("path",Set.fromList [Set.fromList [],Set.fromList [0],Set.fromList [0,1],Set.fromList [1]])],
+
+
+
+  let dlPicoJava = flattenProgram $ translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl in
+    testCase "Compute demand of Saiga program" $ programPredicateDemand dlPicoJava (initialDemand "Type" (Set.fromList [0])) @?= expectedDemandPicoJava,
+
+  let dlLocalLookup = translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl in
+    testCase "Compute demand of localLookup program" $ programPredicateDemand dlLocalLookup (initialDemand "LocalLookup" (Set.fromList [0, 1])) @?=
+    Map.fromList  [("Children",Set.fromList [Set.fromList [0]]),
+                   ("IsUnknown",Set.fromList [Set.fromList [0]]),
+                   ("Kind",Set.fromList [Set.fromList [0]]),
+                   ("LocalLookup",Set.fromList [Set.fromList [0,1]]),
+                   ("Name",Set.fromList [Set.fromList [0]]),
+                   ("_head",Set.fromList [Set.fromList [0]]),
+                   ("_nil",Set.fromList [Set.fromList []]),
+                   ("_tail",Set.fromList [Set.fromList [0]]),
+                   ("finddecl",Set.fromList [Set.fromList [0,1]]),
+                   ("mkUnknownDecl",Set.fromList [Set.fromList []]),
+                   ("predefs",Set.fromList [Set.fromList []])],
 
   testCase "Generate demand rules 1" $
     prettyClause <$> (genDemandRules (path[x, z] :: Atom Int Bool) (Set.fromList [0]) [path[x, y], edge[y, z]]) isEDB @?=

@@ -1,5 +1,8 @@
-module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules, transformProgram,
+module DemandTransformation (programPredicateDemand, PredicateDemand, DemandPattern, genDemandRules,
+                             transformProgram, flattenProgram,
                              initialDemand, predicates, idbPredicates) where
+
+import qualified Debug.Trace as Trace
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -78,7 +81,7 @@ programPredicateDemand :: Program a s -> PredicateDemand -> PredicateDemand
 programPredicateDemand p d =
   let d' = programPredicateDemand' p d in
     if d' == d then d
-    else programPredicateDemand' p d'
+    else programPredicateDemand p d'
 
 bodyDemandPatterns :: Set String -- bound variables
                    -> [Atom a s] -- body atoms
@@ -140,9 +143,9 @@ transformProgram :: Program a s
                  -> PredicateDemand -- initial demand
                  -> Program a s
 
-transformProgram p ipd =
-  let flatp@(Program cs) = flattenProgram p
-      pd = programPredicateDemand p ipd
+transformProgram prog ipd =
+  let flatp@(Program cs) = flattenProgram prog
+      pd = programPredicateDemand prog ipd
       isEDB pred = not $ Set.member pred (idbPredicates flatp)
       transformClause c@(Clause [h@(Literal p ts _)] bs) = if null bs then [c] -- this is a fact, nothing to do here
                                                            else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in

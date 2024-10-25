@@ -194,3 +194,40 @@ picoJavaProgram ast =
     BuiltinFunction "mkUnknownClass" 0 $
       const $ DNode unknownClass
     ]
+
+
+localLookupProgram ast =
+  let pm = parentMap ast in [
+    localLookupAttr,
+    isUnknownAttr,
+
+    BuiltinAttribute Parent 0 $
+      \(DNode n) -> let p = Map.lookup n pm in
+                      if isJust p then const (DNode $ fromJust p)
+                      else const $ DNode unknownDecl,
+
+    BuiltinAttribute Child 1 $
+      \(DNode n) [DInt i] -> if i >= (length n.children)
+                     then error $ "Index " ++ show i ++ " for node " ++ show n
+                     else DNode $ n.children !! i,
+
+    BuiltinAttribute Kind 0 $
+      \(DNode n) -> const $ DString $ fst n.kind,
+
+    BuiltinAttribute Name 0 $
+      \(DNode n) -> const $ DString $ n.token,
+
+    BuiltinAttribute Children 0 $
+      \(DNode n) -> const $ DList (DNode <$> n.children),
+
+    Function "finddecl" 2 findDeclExpr,
+
+    BuiltinFunction "predefs" 0 $
+      \_ -> DList [DNode boolDecl],
+
+    BuiltinFunction "mkUnknownDecl" 0 $
+      const $ DNode unknownDecl,
+
+    BuiltinFunction "mkUnknownClass" 0 $
+      const $ DNode unknownClass
+    ]

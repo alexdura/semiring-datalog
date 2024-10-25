@@ -1,0 +1,4 @@
+LocalLookup(_node, _arg_0, _f) <- Kind(_node, _a), _builtin_eq(_a, DString "Program"), Children(_node, _c), finddecl(_arg_0, _c, _d), IsUnknown(_d, _b), _builtin_eq(_b, DBool True), predefs(_e), finddecl(_arg_0, _e, _f)
+LocalLookup(_node, _arg_0, _h) <- Kind(_node, _a), _builtin_eq(_a, DString "Program"), Children(_node, _c), finddecl(_arg_0, _c, _d), IsUnknown(_d, _b), _builtin_eq(_b, DBool False), Children(_node, _g), finddecl(_arg_0, _g, _h)
+LocalLookup(_node, _arg_0, _k) <- Kind(_node, _a), _builtin_neq(_a, DString "Program"), Kind(_node, _i), _builtin_eq(_i, DString "Block"), Children(_node, _j), finddecl(_arg_0, _j, _k)
+LocalLookup(_node, _arg_0, _l) <- Kind(_node, _a), _builtin_neq(_a, DString "Program"), Kind(_node, _i), _builtin_neq(_i, DString "Block"), mkUnknownDecl(_l)
