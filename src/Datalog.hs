@@ -6,16 +6,16 @@ import Data.List
 
 data Program a b = Program [Clause a b]
 
-data Clause a b = Clause { heads :: [Atom a b], body :: [Atom a b]}
+data Clause a s = Clause { heads :: [Atom a s], body :: [Atom a s]}
 
-data Atom a b = Literal Predicate [Term a b] (b -> b)
-              | Value b
-              | Function String [Term a b] ([a] -> b)
+data Atom a s = Literal Predicate [Term a] (s -> s)
+              | Value s
+              | Function String [Term a] ([a] -> s)
 
-data Term a b = Variable String
-              | Constant a
-              | Expr [Term a b] ([a] -> a)
-              | Fresh [Term a b]
+data Term a = Variable String
+            | Constant a
+            | Expr [Term a] ([a] -> a)
+            | Fresh [Term a]
 
 type Predicate = String
 
@@ -37,19 +37,19 @@ infix 0 +=
 (+=) :: [Atom a s] -> [Atom a s] -> Clause a s
 (+=) = Clause
 
-lit :: String -> [Term a s] -> Atom a s
+lit :: String -> [Term a] -> Atom a s
 lit s ts  = Literal s ts id
 
 val :: s -> Atom a s
 val = Value
 
-cst :: a -> Term a s
+cst :: a -> Term a
 cst = Constant
 
-var :: String -> Term a s
+var :: String -> Term a
 var = Variable
 
-expr :: ([a] -> a) -> [Term a s] -> Term a s
+expr :: ([a] -> a) -> [Term a] -> Term a
 expr f ts = Expr ts f
 
 clause :: [Atom a s] -> ([Atom a s] -> Clause a s) -> Clause a s

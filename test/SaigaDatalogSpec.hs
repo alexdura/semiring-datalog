@@ -13,7 +13,7 @@ import Test.Tasty.HUnit
 import qualified Data.Set as Set
 
 -- Eq instance to be used for testing; does not properly handle Expr!
-instance (Eq a, Eq b) => (Eq (Term a b)) where
+instance (Eq a) => (Eq (Term a)) where
   (==) (Variable s1) (Variable s2) = s1 == s2
   (==) (Constant v1) (Constant v2) = v1 == v2
   (==) (Expr ts1 _) (Expr ts2 _) = ts1 == ts2
@@ -28,7 +28,7 @@ instance (Eq a, Eq b) => (Eq (Atom a b)) where
 
 
 -- instance Show
-instance (Show a, Show b) => (Show (Term a b)) where
+instance (Show a) => (Show (Term a)) where
   show = prettyTerm
 
 instance (Show a, Show b) => (Show (Atom a b)) where

@@ -69,7 +69,7 @@ applyFunction b (Function _ ts f) =
 
   in f args
 
-lookupTerm :: DatalogGroundTerm a => Binding a -> (Term a s, a) -> MaybeT (State (Context a s)) (Binding a)
+lookupTerm :: DatalogGroundTerm a => Binding a -> (Term a, a) -> MaybeT (State (Context a s)) (Binding a)
 lookupTerm b (t, k) = case t of
                         (Variable name) -> case Map.lookup name b of
                                              Just v -> if v == k then return b else mzero -- name already bound, check equality
@@ -82,10 +82,10 @@ lookupTerm b (t, k) = case t of
                           r <- lift $ makeFreshValue b opds
                           if r == k then return b else mzero
 
-evalExprs :: DatalogGroundTerm a => Binding a -> [Term a b] -> ([a] -> a) -> State (Context a s) a
+evalExprs :: DatalogGroundTerm a => Binding a -> [Term a] -> ([a] -> a) -> State (Context a s) a
 evalExprs b opds f = liftM f $ mapM (evalExpr b) opds
 
-evalExpr :: DatalogGroundTerm a => Binding a -> Term a b -> State (Context a s) a
+evalExpr :: DatalogGroundTerm a => Binding a -> Term a -> State (Context a s) a
 evalExpr b e = case e of
                  (Variable name) -> return $
                    fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
@@ -94,7 +94,7 @@ evalExpr b e = case e of
                  (Fresh opds) -> makeFreshValue b opds
 
 
-makeFreshValue :: DatalogGroundTerm a => Binding a -> [Term a b] -> State (Context a s) a
+makeFreshValue :: DatalogGroundTerm a => Binding a -> [Term a] -> State (Context a s) a
 makeFreshValue b opds = do
   opds' <- mapM (evalExpr b) opds
   ctx <- get

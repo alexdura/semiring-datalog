@@ -5,15 +5,15 @@ import Saiga (Domain (..), Expr (..), SaigaElement(..), SaigaAttribute)
 import Control.Monad.State
 import Data.List (isPrefixOf)
 
-type SaigaTerm a = Term (Domain a) Bool
+type SaigaTerm a = Term (Domain a)
 type SaigaAtom a = Atom (Domain a) Bool
 type SaigaClause a = Clause (Domain a) Bool
 type SaigaDatalogProgram a = Program (Domain a) Bool
 
-equals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
+equals :: Eq a => Term a -> Term a -> Atom a Bool
 equals x y = Datalog.Function "_builtin_eq" [x, y] (\[x', y'] -> x' == y')
 
-notEquals :: Eq a => Term a Bool -> Term a Bool -> Atom a Bool
+notEquals :: Eq a => Term a -> Term a -> Atom a Bool
 notEquals x y = Datalog.Function "_builtin_neq" [x, y] (\[x', y'] -> x' /= y')
 
 translateToTermS :: (SaigaAttribute attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
