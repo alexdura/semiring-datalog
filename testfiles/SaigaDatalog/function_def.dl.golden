@@ -1,3 +1,3 @@
-finddecl(_arg_0, _arg_1, _b) <- _nil(_a), _builtin_eq(_arg_1, _a), mkUnknownDecl(_b)
-finddecl(_arg_0, _arg_1, _e) <- _nil(_a), _builtin_neq(_arg_1, _a), _head(_arg_1, _d), Name(_d, _c), _builtin_eq(_arg_0, _c), _head(_arg_1, _e)
-finddecl(_arg_0, _arg_1, _g) <- _nil(_a), _builtin_neq(_arg_1, _a), _head(_arg_1, _d), Name(_d, _c), _builtin_neq(_arg_0, _c), _tail(_arg_1, _f), finddecl(_arg_0, _f, _g)
+finddecl(_arg_0, _arg_1, _b) <- _a := DList [], _builtin_eq(_arg_1, _a), mkUnknownDecl(_b)
+finddecl(_arg_0, _arg_1, _e) <- _a := DList [], _builtin_neq(_arg_1, _a), _d := _head(_arg_1), Name(_d, _c), _builtin_eq(_arg_0, _c), _e := _head(_arg_1)
+finddecl(_arg_0, _arg_1, _g) <- _a := DList [], _builtin_neq(_arg_1, _a), _d := _head(_arg_1), Name(_d, _c), _builtin_neq(_arg_0, _c), _f := _tail(_arg_1), finddecl(_arg_0, _f, _g)

@@ -81,7 +81,7 @@ applyFunction :: Binding a -> Atom a s -> s
 applyFunction b (Function _ ts f) =
   let args = map (\case (Variable name) -> fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                         (Constant c) -> c
-                        (Expr _ _) -> error "No Expr in Function") ts
+                        (Expr {}) -> error "No Expr in Function") ts
 
   in f args
 
@@ -91,7 +91,7 @@ lookupTerm b (t, k) = case t of
                                              Just v -> if v == k then return b else mzero -- name already bound, check equality
                                              Nothing -> return $ Map.insert name k b -- name not bound, bind now
                         (Constant c) -> if c == k then return b else mzero
-                        (Expr opds f) -> do
+                        (Expr _ opds f) -> do
                           r <- lift $ evalExprs b opds f
                           if r == k then return b else mzero
                         (Fresh opds) -> do
@@ -106,7 +106,7 @@ evalExpr b e = case e of
                  (Variable name) -> return $
                    fromMaybe (error $ "Undefined variable '" ++ name ++ "'.") $ b Map.!? name
                  (Constant c) -> return c
-                 (Expr opds' f') -> evalExprs b opds' f'
+                 (Expr _ opds' f') -> evalExprs b opds' f'
                  (Fresh opds) -> makeFreshValue b opds
 
 

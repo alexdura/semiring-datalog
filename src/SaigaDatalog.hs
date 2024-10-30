@@ -74,14 +74,14 @@ translateToTermS (Head e) = do
   names <- get
   let fvar = Variable $ head names
   put $ tail names
-  return $ [(fvar, es' ++ [Literal "_head" [evar, fvar] id]) | (evar, es') <- es]
+  return $ [(fvar, es' ++ [Bind (dlHeadExpr evar) fvar]) | (evar, es') <- es]
 
 translateToTermS (Tail e) = do
   es <- translateToTermS e
   names <- get
   let fvar = Variable $ head names
   put $ tail names
-  return $ [(fvar, es' ++ [Literal "_tail" [evar, fvar] id]) | (evar, es') <- es]
+  return $ [(fvar, es' ++ [Bind (dlTailExpr evar) fvar]) | (evar, es') <- es]
 
 translateToTermS (Cons h t) = do
   hs <- translateToTermS h
@@ -92,19 +92,35 @@ translateToTermS (Cons h t) = do
   return $ do
     (hvar, hs') <- hs
     (tvar, ts') <- ts
-    return (fvar, hs' ++ ts' ++ [Literal "_cons" [hvar,  tvar, fvar] id])
+    return (fvar, hs' ++ ts' ++ [Bind (dlConsExpr hvar tvar) fvar])
 
 translateToTermS Nil = do
   names <- get
   put $ tail names
   let fvar = Variable $ head names
-  return [(fvar, [Literal "_nil" [fvar] id])]
+  return [(fvar, [Bind dlNilExpr fvar])]
 
 
 translateToTerm :: (SaigaAttribute attr, Eq a) =>
                    Expr attr ->
                    [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
+
+
+dlHeadExpr v = Expr "_head" [v] (\case [DList (h:_)] -> h
+                                       [DList []] -> error "Taking the head of an empty list."
+                                       [_] -> error "Taking the head of a value that is not a list."
+                                       _ -> error "_head function has exactly one argument.")
+
+dlTailExpr v = Expr "_tail" [v] (\case [DList (_:t)] -> DList t
+                                       [DList []] -> error "Taking the tail of an empty list."
+                                       [_] -> error "Taking the tail of a value that is not a list."
+                                       _ -> error "_tail function has exactly one argument.")
+
+dlNilExpr = Constant $ DList []
+
+dlConsExpr h t = Expr "_cons" [h, t] (\case [v, DList l] -> DList (v:l)
+                                            _ -> error "Second argument to cons must be a list.")
 
 reservedName :: String -> Bool
 reservedName n = any (`isPrefixOf` n) ["_node", "_arg", "_nil", "_head", "_tail", "_cons"]

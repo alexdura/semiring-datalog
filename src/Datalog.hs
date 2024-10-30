@@ -15,7 +15,7 @@ data Atom a s = Literal Predicate [Term a] (s -> s)
 
 data Term a = Variable String
             | Constant a
-            | Expr [Term a] ([a] -> a)
+            | Expr String [Term a] ([a] -> a)
             | Fresh [Term a]
 
 type Predicate = String
@@ -24,10 +24,11 @@ type Predicate = String
 prettyAtom (Literal p ts _) = p ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
 prettyAtom (Value b) = show b
 prettyAtom (Function name ts _) = name ++ "(" ++ (intercalate ", " (map prettyTerm ts)) ++ ")"
+prettyAtom (Bind s d) = prettyTerm d ++ " := " ++ prettyTerm s
 
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = v
-prettyTerm (Expr ts _) = "expr(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
+prettyTerm (Expr name ts _) = name ++ "(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
 prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
 
@@ -53,8 +54,8 @@ cst = Constant
 var :: String -> Term a
 var = Variable
 
-expr :: ([a] -> a) -> [Term a] -> Term a
-expr f ts = Expr ts f
+expr :: String -> ([a] -> a) -> [Term a] -> Term a
+expr name f ts = Expr name ts f
 
 clause :: [Atom a s] -> ([Atom a s] -> Clause a s) -> Clause a s
 clause head rest = rest head

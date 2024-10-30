@@ -114,7 +114,7 @@ p5 =
   in
   Program [
     [k[cst 1], k[cst 2]] += [val True],
-    [e[Expr [x, y] (\[x', y'] -> x' Prelude.+ y')]] += [k[x], k[y]]]
+    [e[Expr "+" [x, y] (\[x', y'] -> x' Prelude.+ y')]] += [k[x], k[y]]]
 
 r5 = eval p5 emptyContext
 

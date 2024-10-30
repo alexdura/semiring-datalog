@@ -44,6 +44,7 @@ bodyDemandedVars :: Atom a b -- body atom
 bodyDemandedVars (Literal pred ts _) = Set.fromList $
   concatMap (\case Variable v -> [v]
                    _ -> []) ts
+bodyDemandedVars (Bind _ (Variable v)) = Set.singleton v
 bodyDemandedVars _ = Set.empty
 
 bodyDemand :: Atom a s -> Set String -> DemandPattern
@@ -91,6 +92,7 @@ bodyDemandPatterns _ [] = []
 bodyDemandPatterns boundVars (a : as) =
   case a of (Literal _ ts _) -> let boundVars' = Set.union (bodyDemandedVars a) boundVars
                                 in bodyDemand a boundVars : bodyDemandPatterns boundVars' as
+            (Bind _ (Variable v)) -> Set.empty : bodyDemandPatterns (Set.insert v boundVars) as
             _ -> Set.empty : bodyDemandPatterns boundVars as
 
 genDemandLiteral :: Atom a s -- original atom

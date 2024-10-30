@@ -16,7 +16,7 @@ import qualified Data.Set as Set
 instance (Eq a) => (Eq (Term a)) where
   (==) (Variable s1) (Variable s2) = s1 == s2
   (==) (Constant v1) (Constant v2) = v1 == v2
-  (==) (Expr ts1 _) (Expr ts2 _) = ts1 == ts2
+  (==) (Expr name1 ts1 _) (Expr name2 ts2 _) = name1 == name2 && ts1 == ts2
   (==) _ _ = False
 
 -- Eq instance to be used for testing; does not properly handle Literal and Function
@@ -146,7 +146,6 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   in
     testCase "List EDB predicates is LocalLookup program" $ edbPreds @?=
     Set.fromList ["Children","Kind","Name",
-                  "_head","_nil","_tail",
                   "mkUnknownDecl","predefs"],
 
   --
@@ -158,12 +157,10 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   in
     testCase "List EDB predicates is demand-transformed LocalLookup program" $ edbPreds @?=
     Set.fromList ["Children","Kind","Name",
-                  "_head","_nil","_tail",
                   "mkUnknownDecl","predefs", "d_LocalLookup_bbf"]
   ]
 
 
 edbPredsPicoJava = Set.fromList ["Child","Children","Kind","Name",
                                   "Parent",
-                                  "_head","_nil","_tail",
                                   "mkUnknownClass","mkUnknownDecl","predefs"]

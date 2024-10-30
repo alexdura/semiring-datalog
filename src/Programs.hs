@@ -161,15 +161,14 @@ andersenCallSiteSensitive =
       _2 = Datalog.var "_2"
 
       initialCtx = GCtx 0 0
-      merge [GInt c,
-             GCtx callerCtx0 callerCtx1] = GCtx c callerCtx0
+      merge [heap, ctx] = Datalog.expr "merge" (\[GInt c, GCtx callerCtx0 callerCtx1] -> GCtx c callerCtx0) [heap, ctx]
+      record [heap, ctx] = Datalog.expr "record" (\[GInt heap, GCtx ctx0 ctx1] -> GHeapCtx) [heap, ctx]
 
-      record [GInt heap, GCtx ctx0 ctx1] = GHeapCtx
 
   in
     Program [
-    [varPointsTo [var, ctx, heap, expr record [heap, ctx]]] += [reachable [f, ctx], alloc [var, heap, f]],
-    [varPointsTo [var, ctx, func, expr record [func, ctx]]] += [reachable [f, ctx], funcPtr [var, func, f]],
+    [varPointsTo [var, ctx, heap, record [heap, ctx]]] += [reachable [f, ctx], alloc [var, heap, f]],
+    [varPointsTo [var, ctx, func, record [func, ctx]]] += [reachable [f, ctx], funcPtr [var, func, f]],
 
     [varPointsTo [to, ctx, heap, hctx]] += [move [to, from], varPointsTo [from, ctx, heap, hctx]],
 
@@ -177,12 +176,12 @@ andersenCallSiteSensitive =
 
     [varPointsTo [to, ctx, heap, hctx]] += [load [to, base], varPointsTo [base, ctx, baseH, baseHCtx], locPointsTo [baseH, baseHCtx, heap, hctx]],
 
-    [reachable [callee, Datalog.expr merge [c, callerCtx]],
-     callGraph[c, callerCtx, callee, Datalog.expr merge [c, callerCtx]]] +=
+    [reachable [callee, merge [c, callerCtx]],
+     callGraph[c, callerCtx, callee, merge [c, callerCtx]]] +=
       [vcall [base, c, caller], reachable [caller, callerCtx], varPointsTo[base, callerCtx, callee, hctx], funcPtr[_1, callee, _2]],
 
-    [reachable [callee, Datalog.expr merge [c, callerCtx]],
-     callGraph[c, callerCtx, callee, Datalog.expr merge [c, callerCtx]]] += [call[callee, c, f], reachable [f, callerCtx]],
+    [reachable [callee, merge [c, callerCtx]],
+     callGraph[c, callerCtx, callee, merge [c, callerCtx]]] += [call[callee, c, f], reachable [f, callerCtx]],
 
     [reachable [callee, cst initialCtx]] += [reachableInit [callee]],
 
