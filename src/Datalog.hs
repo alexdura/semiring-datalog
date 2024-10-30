@@ -1,16 +1,17 @@
 module Datalog (Program(..), Clause(..), Atom(..), Term(..), Predicate, (+=),
-                var, cst, lit, val, expr, prettyProgram, prettyAtom, prettyTerm, prettyClause) where
+                var, cst, lit, val, expr, bind, prettyProgram, prettyAtom, prettyTerm, prettyClause) where
 
 
 import Data.List
 
-data Program a b = Program [Clause a b]
+newtype Program a s = Program [Clause a s]
 
 data Clause a s = Clause { heads :: [Atom a s], body :: [Atom a s]}
 
 data Atom a s = Literal Predicate [Term a] (s -> s)
               | Value s
               | Function String [Term a] ([a] -> s)
+              | Bind (Term a) (Term a)
 
 data Term a = Variable String
             | Constant a
@@ -39,6 +40,9 @@ infix 0 +=
 
 lit :: String -> [Term a] -> Atom a s
 lit s ts  = Literal s ts id
+
+bind :: Term a -> Term a -> Atom a s
+bind = Bind
 
 val :: s -> Atom a s
 val = Value

@@ -57,8 +57,24 @@ immediateConsequence' (a:as) (b, v) = do
   bindingsNext <- case a of Literal {} -> lookupLiteral a b
                             Value s -> return [(b, s)]
                             f@(Function {}) -> return [(b, applyFunction b f)]
+                            Bind e var -> bindVariable e var b
   r <- mapM (immediateConsequence' as) [(b', v Semiring.* v') | (b', v') <- bindingsNext, v Semiring.* v' /= Semiring.zero]
   return $ concat r
+
+
+bindVariable :: (DatalogGroundTerm a, Semiring s)
+             => Term a
+             -> Term a
+             -> Binding a
+             -> State (Context a s) [(Binding a, s)]
+bindVariable e (Variable name) b =
+  case Map.lookup name b of
+    Just _ -> error "Already bound variable used in Bind literal."
+    Nothing -> do
+      e' <- evalExpr b e
+      return [(Map.insert name e' b, Semiring.one)]
+
+bindVariable _ _ _ = error "Only variables can be bound by a Bind literal."
 
 
 applyFunction :: Binding a -> Atom a s -> s

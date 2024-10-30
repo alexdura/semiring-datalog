@@ -18,16 +18,17 @@ import Context
 evalTests :: TestTree
 evalTests = testGroup "Unit tests" [
   testCase "pretty print" $ (prettyProgram p1) @?= "edge(1, 2), edge(2, 3) <- True\npath(x, y) <- edge(x, y)\npath(x, z) <- path(x, y), path(y, z)",
-  testCase "eval 1" $ (query "edge" r1) @?= [([1, 2], True), ([2, 3], True)],
-  testCase "eval 2" $ (query "path" r1) @?= [([1, 2], True), ([1, 3], True), ([2, 3], True)],
-  testCase "eval 3" $ (query "edge" r2) @?= [],
-  testCase "eval 4" $ (query "path" r2) @?= [],
-  testCase "eval 5" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))],
-  testCase "eval 6" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))],
-  testCase "eval 7" $ (query "E" r5) @?= [([2],True),([3],True),([4],True)],
-  testCase "eval 8.1" $ (query "P" r6) @?= [([0], True), ([1], True)],
-  testCase "eval 8.2" $ (query "Q" r6) @?= [([1], True)],
-  testCase "eval 8.3" $ (query "R" r6) @?= [([10], True)]
+  testCase "eval 1.1" $ (query "edge" r1) @?= [([1, 2], True), ([2, 3], True)],
+  testCase "eval 1.2" $ (query "path" r1) @?= [([1, 2], True), ([1, 3], True), ([2, 3], True)],
+  testCase "eval 2.1" $ (query "edge" r2) @?= [],
+  testCase "eval 2.2" $ (query "path" r2) @?= [],
+  testCase "eval 3" $ (query "path" r3) @?= [([1,2],Tropical (Sum {getSum = 1})),([1,3],Tropical (Sum {getSum = 2})),([2,3],Tropical (Sum {getSum = 1}))],
+  testCase "eval 4" $ (query "pred2" r4) @?= [([1], (ctx2 1 2) Data.Semiring.+ (ctx2 3 4))],
+  testCase "eval 5" $ (query "E" r5) @?= [([2],True),([3],True),([4],True)],
+  testCase "eval 6.1" $ (query "P" r6) @?= [([0], True), ([1], True)],
+  testCase "eval 6.2" $ (query "Q" r6) @?= [([1], True)],
+  testCase "eval 6.3" $ (query "R" r6) @?= [([10], True)],
+  testCase "eval 7" $ (query "P" r7) @?= [([1], True)]
   ]
 
 
@@ -132,3 +133,14 @@ p6 =
     ]
 
 r6 = eval p6 emptyContext
+
+
+p7 :: Program Integer Bool
+p7 =
+  let p = lit "P"
+      x = var "x"
+  in
+    Program [
+    [p[x]] += [bind (cst 1) x]
+    ]
+r7 = eval p7 emptyContext
