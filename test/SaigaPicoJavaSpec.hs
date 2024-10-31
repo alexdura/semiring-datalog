@@ -3,14 +3,17 @@ module SaigaPicoJavaSpec (saigaPicoJavaTests) where
 import PicoJava
 import Saiga
 import SaigaPicoJava
+    ( picoJavaProgram,
+      PicoJavaAttr(Type, Parent, IsUnknown, LocalLookup, Decl, Lookup,
+                   Name),
+      unknownDecl )
 import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.HUnit
-import Data.Maybe
-import Data.List
-import Control.Monad
+
+import Util ( findNodeByPath, nodeId, evalExpr, evalExpr1, parseAndNumber )
 
 saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
-  testCase "Parse program 1" $ parseAndNumber program1 @?=
+  testCase "Parse program 1" $ Util.parseAndNumber program1 @?=
     AST {kind = ("Program",7), token = "", children = [
             AST {kind = ("ClassDecl",6), token = "A", children = [
                     AST {kind = ("UnknownClass",0), token = "_unknown_", children = []},
@@ -21,17 +24,17 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
                                     AST {kind = ("Use",3), token = "A", children = []}]}]}]}]},
 
   testCase "Compute parent attribute 1" $
-    let ast = parseAndNumber program1
+    let ast = Util.parseAndNumber program1
         path = [0, 1, 0, 0] in
-      (nodeId $ evalExpr ast path Node) @?= 1,
+      (nodeId $ evalExpr picoJavaProgram ast path Node) @?= 1,
 
 
   testCase "Compute parent attribute 2" $
-    let ast = parseAndNumber program1
+    let ast = Util.parseAndNumber program1
         path = [0, 1, 0, 0]
         expr = Node <.> Parent <?> []
     in
-      (nodeId $ evalExpr ast path expr) @?= 2,
+      (nodeId $ evalExpr picoJavaProgram ast path expr) @?= 2,
 
 
   testCase "Compute parent attribute 3" $
@@ -41,7 +44,7 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
         isUnknown = IsUnknown <?> []
         expr = Node <.> parent <.> parent <.> parent <.> parent <.> parent <.> isUnknown
     in
-      evalExpr ast path expr @?= DBool True,
+      evalExpr picoJavaProgram ast path expr @?= DBool True,
 
   testCase "Compute parent attribute 4" $
     let ast = parseAndNumber program1
@@ -50,7 +53,7 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
         isUnknown = IsUnknown <?> []
         expr = Node <.> parent <.> parent <.> parent <.> parent <.> isUnknown
     in
-      evalExpr ast path expr @?= DBool False,
+      evalExpr picoJavaProgram ast path expr @?= DBool False,
 
   testCase "Parse program 2" $ parseAndNumber program2 @?= program2Ast,
 
@@ -59,90 +62,41 @@ saigaPicoJavaTests = testGroup "Saiga attributes for PicoJava tests" [
         path = []
         expr = Node <.> LocalLookup <?> [SVal "A"]
     in
-      evalExpr ast path expr @?= (DNode $ findNodeByPath ast [0]),
+      evalExpr picoJavaProgram ast path expr @?= (DNode $ findNodeByPath ast [0]),
 
   testCase "Local lookup 2" $
     let ast = parseAndNumber program2
         path = []
         expr = Node <.> LocalLookup <?> [SVal "C"]
     in
-      evalExpr ast path expr @?= DNode unknownDecl,
+      evalExpr picoJavaProgram ast path expr @?= DNode unknownDecl,
 
 
   testCase "Parse program 3" $ parseAndNumber program3 @?= program3Ast,
 
   testCase "Lookup_1" $
     let expr = Node <.> Lookup <?> [Node <.> Name <?> []] in
-      evalExpr1 program3Ast 6 expr @?= DNode
+      evalExpr1 picoJavaProgram program3Ast 6 expr @?= DNode
       AST {kind = ("VarDecl",2), token = "x", children = [
               AST {kind = ("Use",1), token = "bool", children = []}]},
 
   testCase "Lookup_2" $
     let expr = Node <.> Decl <?> [] in
-      (nodeId $ evalExpr1 program3Ast 15 expr) @?= 5,
+      (nodeId $ evalExpr1 picoJavaProgram program3Ast 15 expr) @?= 5,
 
   testCase "Parse program 4" $ parseAndNumber program4 @?= program4Ast,
 
   testCase "Lookup_3" $
     let expr = Node <.> Lookup <?> [Node <.> Name <?> []] in
-      evalExpr1 program4Ast 3 expr @?= DNode
+      evalExpr1 picoJavaProgram program4Ast 3 expr @?= DNode
       AST {kind = ("VarDecl",2), token = "x", children = [
               AST {kind = ("Use",1), token = "A", children = []}]},
 
   testCase "Type_1" $
     let expr = Node <.> Lookup <?> [Node <.> Name <?> []] <.> Type <?> [] in
-      (nodeId $ evalExpr1 program4Ast 3 expr) @?= 7
+      (nodeId $ evalExpr1 picoJavaProgram program4Ast 3 expr) @?= 7
   ]
 
-
-evalExpr :: PicoJavaAST -> [Int] -> Expr PicoJavaAttr -> Domain (String, Int)
-
-findNodeByPath ast [] = ast
-findNodeByPath ast (n:ns) = findNodeByPath ((children ast) !! n) ns
-
-findNodeById ast nid = if (snd $ kind ast) == nid then Just ast
-                       else join $ find isJust ((\ast' -> findNodeById ast' nid) <$> ast.children)
-
-nodeId (DNode (AST (_, i) _ _)) = i
-
-evalExpr ast path expr =
-  let n = findNodeByPath ast path
-      ctx = makeAttributeCtx (picoJavaProgram ast)
-      (r, log) = evalWithLog ctx [DList []] n expr
-  in
-    case r of
-      Left err -> error $ err ++ "\n" ++ prettyLog log
-      Right r -> r
-
-
-
-prettyLogEntry (LogEntry args n e r) = "ARG=(" ++ (intercalate ", " $ prettyDomain <$> args) ++ ") NODE="
-                                      ++ show n.kind ++ " " ++ prettyExpr 0 e ++ " R="
-                                      ++ (case r of DNode n -> show n.kind
-                                                    _ -> prettyDomain r)
-
-prettyLog log = intercalate "\n" (prettyLogEntry <$> log)
-
-evalExpr1 :: PicoJavaAST -> Int -> Expr PicoJavaAttr -> Domain (String, Int)
-evalExpr1 ast nid expr =
-  let n = fromJust $ findNodeById ast nid
-      ctx = makeAttributeCtx (picoJavaProgram ast)
-      (r, log) = evalWithLog ctx [DList []] n expr
-  in
-    case r of
-      Left err -> error $ err ++ "\n" ++ prettyLog log
-      Right r -> r
-
-evalExprDebug ast nid expr logsize =
-  let n = fromJust $ findNodeById ast nid
-      ctx = makeAttributeCtx (picoJavaProgram ast)
-      log = take logsize $ snd $ evalWithLog ctx [DList []] n expr
-  in
-    prettyLog log
-
-parseAndNumber s = case parseProgram s >>= (return . numberNodes) of
-  Left e -> error $ "Error parsing program: " ++ show e
-  Right ast -> ast
 
 
 program1 = "class A { \n\

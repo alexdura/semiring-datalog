@@ -97,11 +97,13 @@ test-suite semiring-test
   main-is: Spec.hs
   other-modules:
       ContextSpec
+      DatalogPicoJavaSpec
       DemandTransformationSpec
       EvalSpec
       PicoJavaSpec
       SaigaDatalogSpec
       SaigaPicoJavaSpec
+      Util
       Paths_semiring
   autogen-modules:
       Paths_semiring
