@@ -1,4 +1,4 @@
-module Eval(Context, query, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, DatalogGroundTerm(..)) where
+module Eval(Context, query, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, DatalogGroundTerm(..), Relation) where
 
 import qualified Data.Map.Strict as Map
 import Data.Semiring (Semiring)

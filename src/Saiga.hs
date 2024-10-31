@@ -171,7 +171,7 @@ data Domain a = DInt Int
               | DBool Bool
               | DNode (AST a)
               | DList [Domain a]
-              deriving (Show, Eq)
+              deriving (Show, Eq, Ord)
 
 prettyDomain :: Show a => Domain a -> String
 prettyDomain (DInt n) = show n
