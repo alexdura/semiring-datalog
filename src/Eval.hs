@@ -1,4 +1,4 @@
-module Eval(Context, query, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, DatalogGroundTerm(..), Relation) where
+module Eval(Context, query, addRelation, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, DatalogGroundTerm(..), Relation) where
 
 import qualified Data.Map.Strict as Map
 import Data.Semiring (Semiring)
@@ -154,6 +154,9 @@ query pred ctx =
     Just rel -> Map.toList rel
     Nothing -> []
 
+addRelation :: String -> Relation a s -> Context a s -> Context a s
+addRelation name rel ctx =
+  ctx { relations = Map.insert name rel ctx.relations}
 
 instance DatalogGroundTerm Integer where
   parse = read

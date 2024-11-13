@@ -8,15 +8,18 @@ import qualified Eval
 import qualified SaigaPicoJava
 import Util
 import Control.Monad.State.Strict
-import PicoJava
+import qualified PicoJava
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
+import qualified DemandTransformation
+import qualified SaigaDatalog
+import Data.Maybe
+import SaigaPicoJavaSpec
 
 type Relation = Eval.Relation (Saiga.Domain (String, Int)) Bool
 type Context = Eval.Context (Saiga.Domain (String, Int)) Bool
 
 
-datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
-                                                                             ]
 
 collect' :: (PicoJava.AST a -> s -> s) -> PicoJava.AST a -> State s ()
 collect' update n = do
@@ -53,9 +56,43 @@ kind n r =
 unknownDeclRel :: Relation
 unknownDeclRel = Map.singleton [Saiga.DNode SaigaPicoJava.unknownDecl] True
 
+unknownClassRel :: Relation
+unknownClassRel = Map.singleton [Saiga.DNode SaigaPicoJava.unknownClass] True
+
 predefs :: Relation
 predefs = Map.singleton [Saiga.DList [Saiga.DNode SaigaPicoJava.boolDecl]] True
 
 
 contextFromAST :: PicoJava.AST (String, Int) -> Context
-contextFromAST ast = undefined
+contextFromAST ast =
+  Eval.addRelation "Parent" (parent ast Map.empty) $
+  Eval.addRelation "Child" (child ast Map.empty) $
+  Eval.addRelation "Child" (children ast Map.empty) $
+  Eval.addRelation "Name" (name ast Map.empty) $
+  Eval.addRelation "Kind" (kind ast Map.empty) $
+  Eval.addRelation "mkUnknownDecl" unknownClassRel $
+  Eval.addRelation "mkUnknownClass" unknownClassRel $
+  Eval.addRelation "predefs" predefs $
+  Eval.emptyContext
+
+instance Read (Saiga.Domain (String, Int)) where
+  readsPrec = undefined
+
+instance Eval.DatalogGroundTerm (Saiga.Domain (String, Int)) where
+  parse = undefined
+  unparse = show
+  firstIndex = Saiga.DInt 0
+  nextIndex = \(Saiga.DInt n) -> Saiga.DInt $ n + 1
+
+
+dlPicoJava = SaigaDatalog.translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+
+datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
+  let nodeId = 15
+      dlEvalCtx = Eval.addRelation "Decl_bf" (Map.singleton ([Saiga.DNode $ fromJust $ findNodeById program3Ast nodeId]) True) $
+                  contextFromAST program3Ast
+      demand = DemandTransformation.initialDemand "Decl" (Set.fromList [0])
+      dlPicoJavaDemand = DemandTransformation.transformProgram dlPicoJava demand
+      dlEvalCtx' = Eval.eval dlPicoJavaDemand dlEvalCtx
+  in testCase "Decl 1" $ (Eval.query "Decl" dlEvalCtx') @?= []
+  ]

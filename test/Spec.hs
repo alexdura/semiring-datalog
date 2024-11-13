@@ -5,6 +5,7 @@ import PicoJavaSpec
 import SaigaPicoJavaSpec
 import SaigaDatalogSpec
 import DemandTransformationSpec
+import DatalogPicoJavaSpec
 
 main = defaultMain $ testGroup "all" [
   evalTests,
@@ -13,5 +14,6 @@ main = defaultMain $ testGroup "all" [
   picoJavaTests,
   saigaPicoJavaTests,
   saigaDatalogTests,
-  demandTransformationTests
+  demandTransformationTests,
+  datalogPicoJavaTests
   ]
