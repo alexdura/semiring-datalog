@@ -1,4 +1,4 @@
-module SaigaPicoJavaSpec (saigaPicoJavaTests, program3Ast) where
+module SaigaPicoJavaSpec (saigaPicoJavaTests, program2Ast, program3Ast) where
 
 import PicoJava
 import Saiga

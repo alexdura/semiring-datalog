@@ -143,6 +143,9 @@ unknownClass = AST ("ClassDecl", -3) "_unknown_" [unknownDecl, AST ("Block", -4)
 boolDecl :: AST (String, Int)
 boolDecl = AST ("ClassDecl", -1) "bool" [AST ("Block", -2) "" []]
 
+intDecl :: AST (String, Int)
+intDecl = AST ("ClassDecl", -11) "int" [AST ("Block", -12) "" []]
+
 mkUnknownDecl = Func "mkUnknownDecl" []
 mkUnknownClass = Func "mkUnknownClass" []
 
@@ -220,6 +223,19 @@ localLookupProgram ast =
     BuiltinAttribute Children 0 $
       \(DNode n) -> const $ DList (DNode <$> n.children),
 
+    Function "finddecl" 2 findDeclExpr,
+
+    BuiltinFunction "predefs" 0 $
+      \_ -> DList [DNode boolDecl],
+
+    BuiltinFunction "mkUnknownDecl" 0 $
+      const $ DNode unknownDecl,
+
+    BuiltinFunction "mkUnknownClass" 0 $
+      const $ DNode unknownClass
+    ]
+
+findDeclProgram ast = [
     Function "finddecl" 2 findDeclExpr,
 
     BuiltinFunction "predefs" 0 $

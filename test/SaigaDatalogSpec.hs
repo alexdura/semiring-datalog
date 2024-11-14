@@ -120,6 +120,13 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
     "testfiles/SaigaDatalog/localLookupProgram-demand.dl.golden"
     "testfiles/SaigaDatalog/localLookupProgram-demand.dl.out",
 
+  -- translate the findDecl program
+  let dlFindDecl = translateProgram $ SaigaPicoJava.findDeclProgram SaigaPicoJava.boolDecl
+      dlFindDeclDemand = transformProgram dlFindDecl (initialDemand "finddecl" (Set.fromList [0, 1]))
+  in goldenProgramTest "Translate the demand-transformed finddecl program" dlFindDeclDemand
+    "testfiles/SaigaDatalog/finddeclProgram-demand.dl.golden"
+    "testfiles/SaigaDatalog/finddeclProgram-demand.dl.out",
+
   -- list predicates not defined in the Saiga/PicoJava program (i.e. EDB predicates)
   let dlPicoJava = flattenProgram $ translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
       preds = predicates dlPicoJava
@@ -132,6 +139,15 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   -- should be the same as for the original program
   let dlPicoJava = translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
       dlPicoJavaDemand = transformProgram dlPicoJava (initialDemand "Type" (Set.fromList [0]))
+      preds = predicates dlPicoJavaDemand
+      idbPreds = idbPredicates dlPicoJavaDemand
+      edbPreds = Set.difference preds idbPreds
+  in
+    testCase "List EDB predicates in demand-transformed program" $ edbPreds @?= edbPredsPicoJava,
+
+  --
+  let dlPicoJava = translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+      dlPicoJavaDemand = transformProgram dlPicoJava (initialDemand "Decl" (Set.fromList [0]))
       preds = predicates dlPicoJavaDemand
       idbPreds = idbPredicates dlPicoJavaDemand
       edbPreds = Set.difference preds idbPreds

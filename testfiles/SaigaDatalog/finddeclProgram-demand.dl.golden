@@ -1,0 +1,4 @@
+finddecl(_arg_0, _arg_1, _b) <- d_finddecl_bbf(_arg_0, _arg_1), _a := DList [], _builtin_eq(_arg_1, _a), mkUnknownDecl(_b)
+finddecl(_arg_0, _arg_1, _e) <- d_finddecl_bbf(_arg_0, _arg_1), _a := DList [], _builtin_neq(_arg_1, _a), _d := _head(_arg_1), Name(_d, _c), _builtin_eq(_arg_0, _c), _e := _head(_arg_1)
+finddecl(_arg_0, _arg_1, _g) <- d_finddecl_bbf(_arg_0, _arg_1), _a := DList [], _builtin_neq(_arg_1, _a), _d := _head(_arg_1), Name(_d, _c), _builtin_neq(_arg_0, _c), _f := _tail(_arg_1), finddecl(_arg_0, _f, _g)
+d_finddecl_bbf(_arg_0, _f) <- d_finddecl_bbf(_arg_0, _arg_1), _a := DList [], _builtin_neq(_arg_1, _a), _d := _head(_arg_1), Name(_d, _c), _builtin_neq(_arg_0, _c), _f := _tail(_arg_1)

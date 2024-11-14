@@ -1,5 +1,6 @@
 module Eval(Context, query, addRelation, eval, evalStep, emptyContext, loadFromCSV, storeToCSV, DatalogGroundTerm(..), Relation) where
 
+import qualified Debug.Trace as Trace
 import qualified Data.Map.Strict as Map
 import Data.Semiring (Semiring)
 import qualified Data.Semiring as Semiring
