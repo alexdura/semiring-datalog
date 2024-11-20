@@ -1,8 +1,8 @@
-module SaigaDatalogSpec where
+module SaigaToDatalogTranslationSpec where
 
 import Saiga
 import Datalog
-import SaigaDatalog
+import SaigaToDatalogTranslation
 import SaigaPicoJava
 import DemandTransformation
 

@@ -3,7 +3,7 @@ import EvalSpec
 import ContextSpec
 import PicoJavaSpec
 import SaigaPicoJavaSpec
-import SaigaDatalogSpec
+import SaigaToDatalogTranslationSpec
 import DemandTransformationSpec
 import DatalogPicoJavaSpec
 

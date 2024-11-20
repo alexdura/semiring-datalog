@@ -12,7 +12,7 @@ import qualified PicoJava
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import qualified DemandTransformation
-import qualified SaigaDatalog
+import qualified SaigaToDatalogTranslation
 import Data.Maybe
 import SaigaPicoJavaSpec
 
@@ -102,9 +102,9 @@ instance Eval.DatalogGroundTerm (Saiga.Domain (String, Int)) where
   nextIndex = \(Saiga.DInt n) -> Saiga.DInt $ n + 1
 
 
-dlPicoJava = SaigaDatalog.translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
+dlPicoJava = SaigaToDatalogTranslation.translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
 
-dlLocalLookup = SaigaDatalog.translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
+dlLocalLookup = SaigaToDatalogTranslation.translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
 
 datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
   let nodeId = 15

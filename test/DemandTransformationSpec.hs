@@ -3,7 +3,7 @@ module DemandTransformationSpec (demandTransformationTests) where
 import Datalog
 import DemandTransformation
 import SaigaPicoJava
-import SaigaDatalog
+import SaigaToDatalogTranslation
 
 import Test.Tasty (testGroup)
 import Test.Tasty.HUnit ( testCase, (@?=) )

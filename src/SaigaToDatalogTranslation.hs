@@ -1,4 +1,4 @@
-module SaigaDatalog (translateToTerm, translateToClause, translateProgram, SaigaAtom, SaigaTerm, SaigaClause) where
+module SaigaToDatalogTranslation (translateToTerm, translateToClause, translateProgram, SaigaAtom, SaigaTerm, SaigaClause) where
 
 import Datalog
 import Saiga (Domain (..), Expr (..), SaigaElement(..), SaigaAttribute)

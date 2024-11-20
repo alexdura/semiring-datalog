@@ -35,8 +35,8 @@ library
       Programs
       Relation
       Saiga
-      SaigaDatalog
       SaigaPicoJava
+      SaigaToDatalogTranslation
   other-modules:
       Paths_semiring
   autogen-modules:
@@ -101,8 +101,8 @@ test-suite semiring-test
       DemandTransformationSpec
       EvalSpec
       PicoJavaSpec
-      SaigaDatalogSpec
       SaigaPicoJavaSpec
+      SaigaToDatalogTranslationSpec
       Util
       Paths_semiring
   autogen-modules:
