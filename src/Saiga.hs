@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Saiga(prettyExpr, Expr(..), AttributeDef(..), SaigaElement(..), SaigaProgram, SaigaAttribute, (<?>),
-             (<.>), (===), (<&&>), (<:>), guard, otherwise,  int, nil, not,
+             (<.>), (===), (<&&>), (<||>), (<:>), guard, otherwise,  int, nil, not,
              Domain(..), prettyDomain, AttributeCtx, makeAttributeCtx, evalWithLog, LogEntry(..)) where
 
 import Prelude hiding (otherwise, not, log)
@@ -142,6 +142,9 @@ infixl 8 <.>
 infixl 9 <?>
 (<?>) attr arg = \n -> Attr n attr arg
 
+
+infixl 2 <||>
+(<||>) l r = IfElse l (BVal True) r
 
 infixr 3 <&&>
 (<&&>) l r = IfElse l (IfElse r (BVal True) (BVal False)) (BVal False)
