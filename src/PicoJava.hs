@@ -7,15 +7,7 @@ import Text.Parsec.Token as P
 import Text.Parsec.Language (javaStyle)
 import Control.Monad.State.Strict
 import Data.Map.Strict hiding (foldl)
-
-data AST a = AST {kind::a, token::String, children::[AST a]} deriving (Eq, Show, Foldable, Ord)
-
--- pretty printing
-pretty :: Show a => AST a -> String
-pretty = prettyIndent 0
-
-prettyIndent :: Show a => Int -> AST a -> String
-prettyIndent n node = replicate n '\t' ++ show node.kind ++ " \"" ++ node.token ++ "\"\n" ++ concatMap (prettyIndent (n + 1)) node.children
+import AST
 
 
 -- parsing
