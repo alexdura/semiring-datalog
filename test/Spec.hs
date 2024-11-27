@@ -6,6 +6,7 @@ import SaigaPicoJavaSpec
 import SaigaToDatalogTranslationSpec
 import DemandTransformationSpec
 import DatalogPicoJavaSpec
+import SaigaCFGLangSpec
 
 main = defaultMain $ testGroup "all" [
   evalTests,
@@ -15,5 +16,6 @@ main = defaultMain $ testGroup "all" [
   saigaPicoJavaTests,
   saigaDatalogTests,
   demandTransformationTests,
-  datalogPicoJavaTests
+  datalogPicoJavaTests,
+  saigaCFGLangTests
   ]

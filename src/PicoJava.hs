@@ -61,27 +61,3 @@ parseStmt = Text.Parsec.parse (PicoJava.stmt <* eof) "input"
 parseAccess = Text.Parsec.parse (PicoJava.access <* eof) "input"
 parseProgram = Text.Parsec.parse (PicoJava.program <* eof) "input"
 parseBlock = Text.Parsec.parse (PicoJava.block <* eof) "input"
-
-
--- node numbering
-numberNodes' :: AST a -> State Int (AST (a, Int))
-numberNodes' n = do
-  children' <- forM n.children numberNodes'
-  c <- get
-  put (c + 1)
-  return $ AST (n.kind, c) n.token children'
-
-numberNodes :: AST a -> AST (a, Int)
-numberNodes n = evalState (numberNodes' n) 0
-
--- building the parent map
-
-parentMap' :: Ord a => AST a -> State (Map (AST a) (AST a)) ()
-parentMap' n = do
-  forM_ n.children $ \c -> do
-    cmap <- get
-    put $ insert c n cmap
-    parentMap' c
-
-parentMap :: Ord a => AST a -> Map (AST a) (AST a)
-parentMap n = execState (parentMap' n) empty

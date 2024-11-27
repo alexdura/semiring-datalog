@@ -71,7 +71,7 @@ lookupAttr = Attribute Lookup 1 $
             (hasKind === "Block", ifOK (Node <.> LocalLookup <?> [Arg 0]) -- L5
                                   (ifOK (Node <.> parent <.> superclass <.> block <.> RemoteLookup <?> [Arg 0])
                                    Node <.> parent <.> Lookup <?> [Arg 0])),
-            (hasKind === "Use" <&&>
+            ((hasKind === "Use") <&&>
              (Node <.> parent <.> kind === "Dot") <&&>
              (Node <.> parent <.> rhs === Node), Node <.> parent <.> access <.> decl <.> typ <.> block <.> RemoteLookup <?> [Arg 0]), -- L6
             (Node <.> isUnknown, mkUnknownDecl), -- L7
