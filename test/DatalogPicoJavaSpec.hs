@@ -3,6 +3,7 @@ module DatalogPicoJavaSpec (datalogPicoJavaTests) where
 import Test.Tasty
 import Test.Tasty.HUnit
 import qualified PicoJava
+import qualified AST
 import qualified Saiga
 import qualified Eval
 import qualified SaigaPicoJava
@@ -15,6 +16,8 @@ import qualified DemandTransformation
 import qualified SaigaToDatalogTranslation
 import Data.Maybe
 import SaigaPicoJavaSpec
+import qualified CFGLang
+import qualified SaigaCFGLangSpec
 
 type Relation = Eval.Relation (Saiga.Domain (String, Int)) Bool
 type Context = Eval.Context (Saiga.Domain (String, Int)) Bool
@@ -75,7 +78,7 @@ builtins = [SaigaPicoJava.intDecl,
 
 contextFromBuiltins f = (foldr (.) id $ (map f builtins)) Map.empty
 
-contextFromAST :: PicoJava.AST (String, Int) -> Context
+contextFromAST :: AST.AST (String, Int) -> Context
 contextFromAST ast =
   Eval.addRelation "Parent" (collect parent ast $
                              contextFromBuiltins parent) $
@@ -106,7 +109,32 @@ dlPicoJava = SaigaToDatalogTranslation.translateProgram $ SaigaPicoJava.picoJava
 
 dlLocalLookup = SaigaToDatalogTranslation.translateProgram $ SaigaPicoJava.localLookupProgram SaigaPicoJava.boolDecl
 
+dlCFGProgram = SaigaToDatalogTranslation.translateProgram $ CFGLang.cfgProgram CFGLang.unknownDecl
+
 datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
+  let nodeId = 0
+      dlEvalCtx = Eval.addRelation "d_Nullable_bf" (Map.singleton [node] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      demand = DemandTransformation.initialDemand "Nullable" (Set.fromList [0])
+      dlCFGProgramDemand = DemandTransformation.transformProgram dlCFGProgram demand
+      dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
+  in testCase "Nullable 1" $
+     lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Just True,
+     -- (Eval.query "Nullable" dlEvalCtx') @?= [],
+
+  let nodeId = 20
+      dlEvalCtx = Eval.addRelation "d_Nullable_bf" (Map.singleton [node] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      demand = DemandTransformation.initialDemand "Nullable" (Set.fromList [0])
+      dlCFGProgramDemand = DemandTransformation.transformProgram dlCFGProgram demand
+      dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
+  in testCase "Nullable 2" $
+     --lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True,
+     (Eval.query "d_Nullable_bf" dlEvalCtx') @?= [],
+
+
   let nodeId = 15
       dlEvalCtx = Eval.addRelation "d_Decl_bf" (Map.singleton ([Saiga.DNode $ fromJust $ findNodeById program3Ast nodeId]) True) $
                   contextFromAST program3Ast

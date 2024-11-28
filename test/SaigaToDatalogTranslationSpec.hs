@@ -5,6 +5,7 @@ import Datalog
 import SaigaToDatalogTranslation
 import SaigaPicoJava
 import DemandTransformation
+import CFGLang
 
 import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.Golden
@@ -126,6 +127,19 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   in goldenProgramTest "Translate the demand-transformed finddecl program" dlFindDeclDemand
     "testfiles/SaigaDatalog/finddeclProgram-demand.dl.golden"
     "testfiles/SaigaDatalog/finddeclProgram-demand.dl.out",
+
+  -- translate the CFG program
+  let dlCFG = translateProgram $ CFGLang.cfgProgram CFGLang.unknownDecl
+  in goldenProgramTest "Translate the demand-transformed CFG program" dlCFG
+    "testfiles/SaigaDatalog/cfg.dl.golden"
+    "testfiles/SaigaDatalog/cfg.dl.out",
+
+  -- translate and transform the CFG program
+  let dlCFG = translateProgram $ CFGLang.cfgProgram CFGLang.unknownDecl
+      dlCFGDemand = transformProgram dlCFG (initialDemand "Nullable" (Set.fromList [0]))
+  in goldenProgramTest "Translate the demand-transformed CFG program" dlCFGDemand
+    "testfiles/SaigaDatalog/cfg-demand.dl.golden"
+    "testfiles/SaigaDatalog/cfg-demand.dl.out",
 
   -- list predicates not defined in the Saiga/PicoJava program (i.e. EDB predicates)
   let dlPicoJava = flattenProgram $ translateProgram $ SaigaPicoJava.picoJavaProgram SaigaPicoJava.boolDecl
