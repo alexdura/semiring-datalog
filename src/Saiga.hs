@@ -66,6 +66,9 @@ prettyExpr _ (Arg n) = "arg[" ++ show n ++ "]"
 prettyExpr _ Node = "node"
 
 data SaigaElement attr a = Attribute attr Int (Expr attr)
+                         | CircularAttribute attr Int (Expr attr)
+                           (Expr attr) -- initial value
+                           String -- join operator
                          | BuiltinAttribute attr Int (Domain a -> [Domain a] -> Domain a)
                          | Function String Int (Expr attr)
                          | BuiltinFunction String Int ([Domain a] -> Domain a)

@@ -119,7 +119,20 @@ datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
       demand = DemandTransformation.initialDemand "Nullable" (Set.fromList [0])
       dlCFGProgramDemand = DemandTransformation.transformProgram dlCFGProgram demand
       dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
-  in testCase "Nullable 1" $
+  in testCase "Nullable 1" $ do
+     lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Just True
+     lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True,
+     -- (Eval.query "Nullable" dlEvalCtx') @?= [],
+
+  let nodeId = 11
+      dlEvalCtx = Eval.addRelation "d_Nullable_bf" (Map.singleton [node] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      demand = DemandTransformation.initialDemand "Nullable" (Set.fromList [0])
+      dlCFGProgramDemand = DemandTransformation.transformProgram dlCFGProgram demand
+      dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
+  in testCase "Nullable 2" $ do
+     lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True
      lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Just True,
      -- (Eval.query "Nullable" dlEvalCtx') @?= [],
 
@@ -130,10 +143,9 @@ datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
       demand = DemandTransformation.initialDemand "Nullable" (Set.fromList [0])
       dlCFGProgramDemand = DemandTransformation.transformProgram dlCFGProgram demand
       dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
-  in testCase "Nullable 2" $
-     --lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True,
-     (Eval.query "d_Nullable_bf" dlEvalCtx') @?= [],
-
+  in testCase "Nullable 3" $ do
+     lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True
+     lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Nothing,
 
   let nodeId = 15
       dlEvalCtx = Eval.addRelation "d_Decl_bf" (Map.singleton ([Saiga.DNode $ fromJust $ findNodeById program3Ast nodeId]) True) $

@@ -111,7 +111,7 @@ genDemandRules :: Atom a s -- head atom
                -> (Predicate -> Bool) -- is EDB predicate?
                -> [Clause a s]
 
-genDemandRules _ _ [] _ = []
+--genDemandRules _ _ [] _ = []
 genDemandRules h@(Literal p ts _) hdp bs isEDB =
   let boundVars = headDemandedVars h hdp
       bodyDemand = zip3 (tails bs) (inits bs) (bodyDemandPatterns boundVars bs) in
@@ -149,9 +149,10 @@ transformProgram prog ipd =
   let flatp@(Program cs) = flattenProgram prog
       pd = programPredicateDemand prog ipd
       isEDB pred = not $ Set.member pred (idbPredicates flatp)
-      transformClause c@(Clause [h@(Literal p ts _)] bs) = if null bs then [c] -- this is a fact, nothing to do here
-                                                           else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
-                                                                  concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
+      transformClause c@(Clause [h@(Literal p ts _)] bs) =
+        if False && null bs then [c] -- this is a fact, nothing to do here
+        else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
+               concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
   in Program $ concatMap transformClause cs
 
 initialDemand :: Predicate -> DemandPattern -> PredicateDemand

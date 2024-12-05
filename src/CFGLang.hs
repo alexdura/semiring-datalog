@@ -23,10 +23,10 @@ nonEmptyProdList h t = AST "NonEmptyProdList" "" [h, t]
 emptyProdList = AST "EmptyProdList" "" []
 
 prods :: [AST String] -> AST String
-prods = foldl nonEmptyProdList emptyProdList
+prods = foldr nonEmptyProdList emptyProdList
 
 symbols :: [AST String] -> AST String
-symbols = foldl nonEmptySymbolList emptySymbolList
+symbols = foldr nonEmptySymbolList emptySymbolList
 
 
 nDecl s = AST "NDecl" s []
@@ -90,7 +90,7 @@ firstAttr =  Attribute First 0 $
 
 
 nullableAttr :: SaigaElement CFGAttr a
-nullableAttr = Attribute Nullable 0 $
+nullableAttr = CircularAttribute Nullable 0 (
   let kind = Kind <?> []
       nullable  = Nullable <?> []
   in guard [
@@ -139,7 +139,8 @@ nullableAttr = Attribute Nullable 0 $
       BVal False
     ),
     (otherwise, SVal "Missing case")
-    ]
+    ])
+  (BVal False) "NotImplemented"
 
 findDeclAttr :: SaigaElement CFGAttr a
 findDeclAttr = Attribute FindDecl 1 $

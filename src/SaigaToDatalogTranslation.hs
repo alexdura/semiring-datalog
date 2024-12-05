@@ -137,6 +137,14 @@ translateToClauseS (Attribute attr nargs e)= do
   es <- translateToTermS e
   return [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
 
+translateToClauseS (CircularAttribute attr nargs e ie _) = do
+  es <- translateToTermS e
+  ies <- translateToTermS ie
+  return $
+    [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es] ++
+    [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- ies]
+
+
 translateToClauseS _ = return []
 
 translateToClause :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> [SaigaClause a]
