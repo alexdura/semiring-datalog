@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.36.0.
+-- This file has been generated from package.yaml by hpack version 0.37.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,6 +25,8 @@ source-repository head
 
 library
   exposed-modules:
+      AST
+      CFGLang
       Context
       Datalog
       DemandTransformation
@@ -32,6 +34,7 @@ library
       Lib
       ParentTree
       PicoJava
+      PlaygroundLang
       Programs
       Relation
       Saiga
@@ -101,6 +104,7 @@ test-suite semiring-test
       DemandTransformationSpec
       EvalSpec
       PicoJavaSpec
+      SaigaCFGLangSpec
       SaigaPicoJavaSpec
       SaigaToDatalogTranslationSpec
       Util

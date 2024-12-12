@@ -6,6 +6,7 @@ import SaigaToDatalogTranslation
 import SaigaPicoJava
 import DemandTransformation
 import CFGLang
+import PlaygroundLang
 
 import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.Golden
@@ -187,9 +188,20 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   in
     testCase "List EDB predicates is demand-transformed LocalLookup program" $ edbPreds @?=
     Set.fromList ["Children","Kind","Name",
-                  "mkUnknownDecl","predefs", "d_LocalLookup_bbf"]
-  ]
+                  "mkUnknownDecl","predefs", "d_LocalLookup_bbf"],
 
+  -- toy examples
+  let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
+      dlToySqrtDemand = transformProgram dlToySqrt (initialDemand "Sqrt" (Set.fromList [0, 1]))
+  in goldenProgramTest "Translate sqrt and demand-transform" dlToySqrtDemand
+    "testfiles/SaigaDatalog/sqrt-demand.dl.golden"
+    "testfiles/SaigaDatalog/sqrt-demand.dl.out",
+
+  let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
+  in goldenProgramTest "Translate sqrt" dlToySqrt
+    "testfiles/SaigaDatalog/sqrt.dl.golden"
+    "testfiles/SaigaDatalog/sqrt.dl.out"
+  ]
 
 edbPredsPicoJava = Set.fromList ["Child","Children","Kind","Name",
                                   "Parent",

@@ -1,4 +1,4 @@
-module DatalogPicoJavaSpec (datalogPicoJavaTests) where
+module DatalogPicoJavaSpec (datalogPicoJavaTests, saigaToDatalogRunnableTests) where
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -17,7 +17,9 @@ import qualified SaigaToDatalogTranslation
 import Data.Maybe
 import SaigaPicoJavaSpec
 import qualified CFGLang
+import qualified PlaygroundLang
 import qualified SaigaCFGLangSpec
+
 
 type Relation = Eval.Relation (Saiga.Domain (String, Int)) Bool
 type Context = Eval.Context (Saiga.Domain (String, Int)) Bool
@@ -111,7 +113,30 @@ dlLocalLookup = SaigaToDatalogTranslation.translateProgram $ SaigaPicoJava.local
 
 dlCFGProgram = SaigaToDatalogTranslation.translateProgram $ CFGLang.cfgProgram CFGLang.unknownDecl
 
-datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
+dlSqrtProgram = SaigaToDatalogTranslation.translateProgram $
+                PlaygroundLang.playProgram
+                CFGLang.unknownDecl -- dummy argument
+
+saigaToDatalogRunnableTests = testGroup "Runnable ests for the Saiga to Datalog translation" [
+  datalogCFGLangTests,
+  datalogPicoJavaTests,
+  datalogPlayLangTests
+  ]
+
+datalogPlayLangTests  = testGroup "Test for the Datalog versions of playground attributes" [
+  let nodeId = 0
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      dlEvalCtx = Eval.addRelation "d_Sqrt_bbf" (Map.singleton [node, Saiga.DInt 4] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      demand = DemandTransformation.initialDemand "Sqrt" (Set.fromList [0, 1])
+      dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
+      dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
+  in testCase "Compute Sqrt of 4" $ do
+    Eval.query "Sqrt" dlEvalCtx' @?= []
+    Eval.query "d_Sqrt_bbf" dlEvalCtx' @?= []
+  ]
+
+datalogCFGLangTests = testGroup "Tests for the Datalog versions of CFGLang Saiga programs" [
   let nodeId = 0
       dlEvalCtx = Eval.addRelation "d_Nullable_bf" (Map.singleton [node] True) $
                   contextFromAST SaigaCFGLangSpec.cfg1'
@@ -145,8 +170,10 @@ datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
       dlEvalCtx' = Eval.eval dlCFGProgramDemand dlEvalCtx
   in testCase "Nullable 3" $ do
      lookup [node, Saiga.DBool False] (Eval.query "Nullable" dlEvalCtx') @?= Just True
-     lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Nothing,
+     lookup [node, Saiga.DBool True] (Eval.query "Nullable" dlEvalCtx') @?= Nothing
+  ]
 
+datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
   let nodeId = 15
       dlEvalCtx = Eval.addRelation "d_Decl_bf" (Map.singleton ([Saiga.DNode $ fromJust $ findNodeById program3Ast nodeId]) True) $
                   contextFromAST program3Ast
