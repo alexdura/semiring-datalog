@@ -131,7 +131,7 @@ datalogPlayLangTests  = testGroup "Test for the Datalog versions of playground a
       demand = DemandTransformation.initialDemand "Sqrt" (Set.fromList [0, 1])
       dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
       dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
-  in testCase "Compute Sqrt of 4" $ do
+  in localOption (mkTimeout $ 4 * 10^6) $ testCase "Compute Sqrt of 4" $ do
     Eval.query "Sqrt" dlEvalCtx' @?= []
     Eval.query "d_Sqrt_bbf" dlEvalCtx' @?= []
   ]
