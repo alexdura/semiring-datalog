@@ -17,13 +17,13 @@ instance SaigaAttribute PlayAttr
 
 sqrtAttr :: SaigaElement PlayAttr a
 sqrtAttr = CircularAttribute Sqrt 1 (
-  let x = Arg 0
-      old = Node <.> Sqrt <?> [x]
-      new = Func "_builtin_add" [old, IVal 1]
-      new2 = Func "_builtin_mul" [new, new]
-      cmp = Func "_builtin_lt" [x, new2]
-  in
-    IfElse cmp old new
+  Let "old" (Node <.> Sqrt <?> [Arg 0]) (
+      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
+          Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) (
+              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              )
+          )
+      )
   ) (IVal 0) "NotImplemented"
 
 

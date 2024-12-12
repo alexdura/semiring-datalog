@@ -25,6 +25,8 @@ data Expr a = IVal Int
             | IfEq (Expr a) (Expr a) (Expr a) (Expr a)
             | Arg Int
             | Node
+            | Let String (Expr a) (Expr a)
+            | Var String
             deriving (Show, Eq)
 
 instance IsString (Expr a) where

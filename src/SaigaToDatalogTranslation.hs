@@ -81,6 +81,13 @@ translateToTermS (Attr n attr args) = do
   args' <- mapM translateToTermS args
   return $ map (\arg -> (fvar, (concatMap snd arg) ++ [lit (show attr) (map fst arg ++ [fvar])])) (sequence (ns : args'))
 
+translateToTermS (Let v e1 e2) = do
+  e1s <- translateToTermS e1
+  e2s <- translateToTermS e2
+  return $ [(e2var, e1s' ++ [Bind e1var (Variable v)] ++ e2s') | (e1var, e1s') <- e1s, (e2var, e2s') <- e2s]
+
+translateToTermS (Var v) = return $ [(Variable v, [])]
+
 translateToTermS (Head e) = do
   es <- translateToTermS e
   names <- get
