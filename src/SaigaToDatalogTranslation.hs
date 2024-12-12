@@ -54,6 +54,18 @@ translateToTermS (IfEq e1 e2 t f) = do
         return (fvar,  e1s' ++ e2s' ++ [notEquals e1var e2var] ++ fs')
   return $ trueTranslation ++ falseTranslation
 
+
+translateToTermS (Func f args@[l, r]) | Just dlExpr <- builtinFunctionToDatalogExpr f = do
+  ls <- translateToTermS l
+  rs <- translateToTermS r
+  names <- get
+  put $ tail names
+  let fvar = Variable $ head names
+  return $ [(fvar, ls' ++ rs' ++ [Bind (dlExpr lvar rvar) fvar]) |
+            (lvar, ls') <- ls,
+            (rvar, rs') <- rs]
+
+
 translateToTermS (Func name args) = do
   args'  <- mapM translateToTermS args -- :: [[(SaigaTerm a, [SaigaAtom a])]]
   names <- get
@@ -105,6 +117,22 @@ translateToTerm :: (SaigaAttribute attr, Eq a) =>
                    Expr attr ->
                    [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
+
+
+builtinFunctionToDatalogExpr name =
+  case name of
+    "_builtin_add" -> Just $ \t0 t1 ->
+      Expr "_add" [t0, t1] (\case [DInt l, DInt r] -> DInt $ l + r
+                                  _ -> error "Can only add integers.")
+
+    "_builtin_mul" -> Just $ \t0 t1 ->
+      Expr "_mul" [t0, t1] (\case [DInt l, DInt r] -> DInt $ l * r
+                                  _ -> error "Can only multiply integers.")
+
+    "_builtin_lt" -> Just $ \t0 t1 ->
+      Expr "_lt" [t0, t1] (\case [DInt l, DInt r] -> DBool $ l < r
+                                 _ -> error "Can only compare integers.")
+    _ -> Nothing
 
 
 dlHeadExpr v = Expr "_head" [v] (\case [DList (h:_)] -> h
