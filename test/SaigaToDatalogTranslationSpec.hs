@@ -192,7 +192,7 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
 
   -- toy examples
   let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
-      dlToySqrtDemand = transformProgram dlToySqrt (initialDemand "Sqrt" (Set.fromList [0, 1]))
+      dlToySqrtDemand = transformProgram dlToySqrt (initialDemand "Sqrt3" (Set.fromList [0, 1]))
   in goldenProgramTest "Translate sqrt and demand-transform" dlToySqrtDemand
     "testfiles/SaigaDatalog/sqrt-demand.dl.golden"
     "testfiles/SaigaDatalog/sqrt-demand.dl.out",

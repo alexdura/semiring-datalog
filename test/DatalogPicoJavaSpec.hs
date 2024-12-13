@@ -131,9 +131,32 @@ datalogPlayLangTests  = testGroup "Test for the Datalog versions of playground a
       demand = DemandTransformation.initialDemand "Sqrt" (Set.fromList [0, 1])
       dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
       dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
+  in localOption (mkTimeout $ 4 * 10^6) $ testCase "Compute Sqrt of 4" $
+    (!! 2) . fst <$> (Eval.query "Sqrt" dlEvalCtx') @?= Saiga.DInt <$> [0, 1, 2],
+
+  let nodeId = 0
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      dlEvalCtx = Eval.addRelation "d_Sqrt2_bbf" (Map.singleton [node, Saiga.DInt 4] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      demand = DemandTransformation.initialDemand "Sqrt2" (Set.fromList [0, 1])
+      dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
+      dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
   in localOption (mkTimeout $ 4 * 10^6) $ testCase "Compute Sqrt of 4" $ do
-    Eval.query "Sqrt" dlEvalCtx' @?= []
-    Eval.query "d_Sqrt_bbf" dlEvalCtx' @?= []
+    (!! 2) . fst <$> Eval.query "Sqrt2" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2]
+    (!! 2) . fst <$> Eval.query "Square" dlEvalCtx' @?= Saiga.DInt <$> [1, 4, 9],
+
+  let nodeId = 0
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      dlEvalCtx = Eval.addRelation "d_Sqrt3_bbf" (Map.singleton [node, Saiga.DInt 4] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      demand = DemandTransformation.initialDemand "Sqrt3" (Set.fromList [0, 1])
+      dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
+      dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
+  in localOption (mkTimeout $ 4 * 10^6) $
+     testCase "Compute Sqrt of 4 (mutually dependent attributes)" $ do
+    (!! 2) . fst <$> Eval.query "Sqrt4" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2]
+    (!! 2) . fst <$> Eval.query "Sqrt3" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2]
+
   ]
 
 datalogCFGLangTests = testGroup "Tests for the Datalog versions of CFGLang Saiga programs" [

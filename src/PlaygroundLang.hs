@@ -10,6 +10,11 @@ import Data.Maybe
 
 
 data PlayAttr = Sqrt
+              | Square
+              | Sqrt2
+              | Sqrt3
+              | Sqrt4
+
               deriving (Eq, Show, Enum)
 
 instance SaigaAttribute PlayAttr
@@ -27,14 +32,53 @@ sqrtAttr = CircularAttribute Sqrt 1 (
   ) (IVal 0) "NotImplemented"
 
 
+squareAttr :: SaigaElement PlayAttr a
+squareAttr = Attribute Square 1 $
+  Func "_builtin_mul" [Arg 0, Arg 0]
+
+
+sqrt2Attr :: SaigaElement PlayAttr a
+sqrt2Attr = CircularAttribute Sqrt2 1 (
+  Let "old" (Node <.> Sqrt2 <?> [Arg 0]) (
+      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
+          Let "new2" (Node <.> Square <?> [Var "new"]) (
+              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              )
+          )
+      )
+  ) (IVal 0) "NotImplemented"
+
+
+sqrt3Attr :: SaigaElement PlayAttr a
+sqrt3Attr = CircularAttribute Sqrt3 1 (
+  Let "old" (Node <.> Sqrt4 <?> [Arg 0]) (
+      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
+          Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) (
+              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              )
+          )
+      )
+  ) (IVal 0) "NotImplemented"
+
+sqrt4Attr :: SaigaElement PlayAttr a
+sqrt4Attr = Attribute Sqrt4 1 $
+  Node <.> Sqrt3 <?> [Arg 0]
+
 playProgram :: AST (String, Int) -> SaigaProgram PlayAttr (String, Int)
 
 playProgram ast = [
-    sqrtAttr,
+  -- single attribute
+  sqrtAttr,
+  -- circular ---dep---> non-circular
+  sqrt2Attr,
+  squareAttr,
+  -- circular ---dep---> non-circular ---dep---> circular
+  sqrt3Attr,
+  sqrt4Attr,
+  --
+  BuiltinFunction "_builtin_add" 2 $ \[DInt m, DInt n] -> DInt $ m + n,
 
-    BuiltinFunction "_builtin_add" 2 $ \[DInt m, DInt n] -> DInt $ m + n,
+  BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n,
 
-    BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n,
-
-    BuiltinFunction "_builtin_lt" 2 $ \[DInt m, DInt n] -> DBool $ m < n
-    ]
+  BuiltinFunction "_builtin_lt" 2 $ \[DInt m, DInt n] -> DBool $ m < n
+  ]

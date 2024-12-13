@@ -1,0 +1,44 @@
+
+
+.decl Sqrt3(node:number, arg:number, rest:number)
+.decl d_Sqrt3_bbf(node:number, arg:number)
+.decl Sqrt4(node:number, arg:number, rest:number)
+.decl d_Sqrt4_bbf(node:number, arg:number)
+
+// input
+d_Sqrt3_bbf(0, 4).
+
+// rules
+Sqrt3(_node, _arg_0, old) :- d_Sqrt3_bbf(_node, _arg_0),
+                             Sqrt4(_node, _arg_0, _a),
+                             old = _a,
+                             _b = old + 1,
+                             new = _b,
+                             _c = new * new,
+                             new2 = _c,
+                             _arg_0 < new2.
+
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+
+Sqrt3(_node, _arg_0, new) :- d_Sqrt3_bbf(_node, _arg_0),
+                             Sqrt4(_node, _arg_0, _a),
+                             old = _a, _b = old + 1,
+                             new = _b,
+                             _c = new * new,
+                             new2 = _c,
+                             _arg_0 >= new2.
+
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+
+Sqrt3(_node, _arg_0, 0) :- d_Sqrt3_bbf(_node, _arg_0).
+
+Sqrt4(_node, _arg_0, _a) :- d_Sqrt4_bbf(_node, _arg_0), Sqrt3(_node, _arg_0, _a).
+
+d_Sqrt3_bbf(_node, _arg_0) :- d_Sqrt4_bbf(_node, _arg_0).
+
+// subsumptive rules
+Sqrt3(_node, _arg_0, r1) <= Sqrt3(_node, _arg_0, r2) :- r1 <= r2.
+Sqrt4(_node, _arg_0, r1) <= Sqrt4(_node, _arg_0, r2) :- r1 <= r2.
+
+.output Sqrt3
+.output Sqrt4
