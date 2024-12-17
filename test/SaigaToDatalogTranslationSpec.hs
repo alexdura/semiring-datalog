@@ -13,6 +13,7 @@ import Test.Tasty.Golden
 import Test.Tasty.HUnit
 
 import qualified Data.Set as Set
+import qualified Data.Map.Strict as Map
 
 -- Eq instance to be used for testing; does not properly handle Expr!
 instance (Eq a) => (Eq (Term a)) where
@@ -192,7 +193,12 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
 
   -- toy examples
   let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
-      dlToySqrtDemand = transformProgram dlToySqrt (initialDemand "Sqrt3" (Set.fromList [0, 1]))
+      demand = Map.fromList [
+        ("Sqrt", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt2", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt3", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt5", Set.singleton $ Set.fromList [0, 1])]
+      dlToySqrtDemand = transformProgram dlToySqrt demand
   in goldenProgramTest "Translate sqrt and demand-transform" dlToySqrtDemand
     "testfiles/SaigaDatalog/sqrt-demand.dl.golden"
     "testfiles/SaigaDatalog/sqrt-demand.dl.out",

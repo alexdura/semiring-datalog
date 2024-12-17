@@ -51,6 +51,7 @@ bodyDemand :: Atom a s -> Set String -> DemandPattern
 bodyDemand (Literal _ ts _) boundVars = Set.fromList $
   findIndices (\case
                   Variable v -> Set.member v boundVars
+                  Constant _ -> True
                   _ -> False) ts
 bodyDemand _ _ = Set.empty
 

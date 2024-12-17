@@ -155,8 +155,18 @@ datalogPlayLangTests  = testGroup "Test for the Datalog versions of playground a
   in localOption (mkTimeout $ 4 * 10^6) $
      testCase "Compute Sqrt of 4 (mutually dependent attributes)" $ do
     (!! 2) . fst <$> Eval.query "Sqrt4" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2]
-    (!! 2) . fst <$> Eval.query "Sqrt3" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2]
+    (!! 2) . fst <$> Eval.query "Sqrt3" dlEvalCtx' @?= Saiga.DInt <$> [0, 1, 2],
 
+  let nodeId = 0
+      node = Saiga.DNode $ fromJust $ findNodeById SaigaCFGLangSpec.cfg1' nodeId
+      dlEvalCtx = Eval.addRelation "d_Sqrt5_bbf" (Map.singleton [node, Saiga.DInt 4] True) $
+                  contextFromAST SaigaCFGLangSpec.cfg1'
+      demand = DemandTransformation.initialDemand "Sqrt5" (Set.fromList [0, 1])
+      dlSqrtDemand = DemandTransformation.transformProgram dlSqrtProgram demand
+      dlEvalCtx' = Eval.eval dlSqrtDemand dlEvalCtx
+  in localOption (mkTimeout $ 4 * 10^6) $
+     testCase "Compute Sqrt of 4 (circular driver)" $ do
+    (!! 2) . fst <$> Eval.query "Sqrt5" dlEvalCtx' @?= [Saiga.DInt 2]
   ]
 
 datalogCFGLangTests = testGroup "Tests for the Datalog versions of CFGLang Saiga programs" [

@@ -4,6 +4,7 @@ import Datalog
 import DemandTransformation
 import SaigaPicoJava
 import SaigaToDatalogTranslation
+import qualified PlaygroundLang
 
 import Test.Tasty (testGroup)
 import Test.Tasty.HUnit ( testCase, (@?=) )
@@ -21,7 +22,7 @@ z = var "z"
 isEDB p | p == "edge" = True
         | otherwise = False
 
-expectedDemandPicoJava = Map.fromList [("Child",Set.fromList [Set.fromList [0]]),
+expectedDemandPicoJava = Map.fromList [("Child",Set.fromList [Set.fromList [0, 1]]),
                                         ("Children",Set.fromList [Set.fromList [0]]),
                                         ("Decl",Set.fromList [Set.fromList [0]]),
                                         ("IsUnknown",Set.fromList [Set.fromList [0]]),
@@ -62,6 +63,12 @@ demandTransformationTests = testGroup "Demand Transformation" [
                    ("finddecl",Set.fromList [Set.fromList [0,1]]),
                    ("mkUnknownDecl",Set.fromList [Set.fromList []]),
                    ("predefs",Set.fromList [Set.fromList []])],
+
+  let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl in
+    testCase "Compute demand of Playground program" $ programPredicateDemand dlToySqrt (initialDemand "Sqrt5" (Set.fromList [0, 1])) @?=
+    Map.fromList [("Sqrt5", Set.fromList [Set.fromList [0,1]]),
+                  ("Sqrt5Circ",Set.fromList [Set.fromList [0,1,2]]),
+                  ("Sqrt5Driver",Set.fromList [Set.fromList [0,1,2]])],
 
   testCase "Generate demand rules 1" $
     prettyClause <$> (genDemandRules (path[x, z] :: Atom Int Bool) (Set.fromList [0]) [path[x, y], edge[y, z]]) isEDB @?=
