@@ -16,7 +16,14 @@ equals x y = Datalog.Function "_builtin_eq" [x, y] (\[x', y'] -> x' == y')
 notEquals :: Eq a => Term a -> Term a -> Atom a Bool
 notEquals x y = Datalog.Function "_builtin_neq" [x, y] (\[x', y'] -> x' /= y')
 
-translateToTermS :: (SaigaAttribute attr, Eq a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
+lessThan :: Ord a => Term a -> Term a -> Atom a Bool
+lessThan x y = Datalog.Function "_builtin_lt" [x, y] (\[x', y'] -> x' < y')
+
+greaterThanOrEqual :: Ord a => Term a -> Term a -> Atom a Bool
+greaterThanOrEqual x y = Datalog.Function "_builtin_gte" [x, y] (\[x', y'] -> x' >= y')
+
+
+translateToTermS :: (SaigaAttribute attr, Ord a) => Expr attr -> State [String] [(SaigaTerm a, [SaigaAtom a])]
 translateToTermS (IVal n) = return [(Constant $ DInt n, [])]
 translateToTermS (BVal b) = return [(Constant $ DBool b, [])]
 translateToTermS (SVal s) = return  [(Constant $ DString s, [])]
@@ -52,6 +59,24 @@ translateToTermS (IfEq e1 e2 t f) = do
         (e2var, e2s') <- e2s
         (fvar, fs') <- fs
         return (fvar,  e1s' ++ e2s' ++ [notEquals e1var e2var] ++ fs')
+  return $ trueTranslation ++ falseTranslation
+
+
+translateToTermS (IfLt e1 e2 t f) = do
+  e1s <- translateToTermS e1
+  e2s <- translateToTermS e2
+  ts <- translateToTermS t
+  fs <- translateToTermS f
+  let trueTranslation = do
+        (e1var, e1s') <- e1s
+        (e2var, e2s') <- e2s
+        (tvar, ts') <- ts
+        return (tvar,  e1s' ++ e2s' ++ [lessThan e1var e2var] ++ ts')
+      falseTranslation = do
+        (e1var, e1s') <- e1s
+        (e2var, e2s') <- e2s
+        (fvar, fs') <- fs
+        return (fvar,  e1s' ++ e2s' ++ [greaterThanOrEqual e1var e2var] ++ fs')
   return $ trueTranslation ++ falseTranslation
 
 
@@ -120,7 +145,7 @@ translateToTermS Nil = do
   return [(fvar, [Bind dlNilExpr fvar])]
 
 
-translateToTerm :: (SaigaAttribute attr, Eq a) =>
+translateToTerm :: (SaigaAttribute attr, Ord a) =>
                    Expr attr ->
                    [(SaigaTerm a, [SaigaAtom a])]
 translateToTerm expr = evalState (translateToTermS expr) freshVarNames
@@ -136,9 +161,6 @@ builtinFunctionToDatalogExpr name =
       Expr "_mul" [t0, t1] (\case [DInt l, DInt r] -> DInt $ l * r
                                   _ -> error "Can only multiply integers.")
 
-    "_builtin_lt" -> Just $ \t0 t1 ->
-      Expr "_lt" [t0, t1] (\case [DInt l, DInt r] -> DBool $ l < r
-                                 _ -> error "Can only compare integers.")
     _ -> Nothing
 
 
@@ -163,7 +185,7 @@ reservedName n = any (`isPrefixOf` n) ["_node", "_arg", "_nil", "_head", "_tail"
 freshVarNames :: [String]
 freshVarNames = ['_' : p : v | v <- "":freshVarNames, p <- ['a'..'z'], not $ reservedName ('_' : p : v)]
 
-translateToClauseS :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> State [String] [SaigaClause a]
+translateToClauseS :: (SaigaAttribute attr, Ord a) => SaigaElement attr a -> State [String] [SaigaClause a]
 translateToClauseS (Saiga.Function name nargs e) =  do
   es <- translateToTermS e
   return [[lit name $ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
@@ -182,8 +204,8 @@ translateToClauseS (CircularAttribute attr nargs e ie _) = do
 
 translateToClauseS _ = return []
 
-translateToClause :: (SaigaAttribute attr, Eq a) => SaigaElement attr a -> [SaigaClause a]
+translateToClause :: (SaigaAttribute attr, Ord a) => SaigaElement attr a -> [SaigaClause a]
 translateToClause el = evalState (translateToClauseS el) freshVarNames
 
-translateProgram :: (SaigaAttribute attr, Eq a) => [SaigaElement attr a] -> SaigaDatalogProgram a
+translateProgram :: (SaigaAttribute attr, Ord a) => [SaigaElement attr a] -> SaigaDatalogProgram a
 translateProgram = Program . concatMap translateToClause

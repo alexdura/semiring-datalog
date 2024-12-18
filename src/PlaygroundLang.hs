@@ -31,7 +31,7 @@ sqrtAttr = CircularAttribute Sqrt 1 (
   Let "old" (Node <.> Sqrt <?> [Arg 0]) (
       Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
           Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) (
-              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              IfLt (Arg 0) (Var "new2") (Var "old") (Var "new")
               )
           )
       )
@@ -48,7 +48,7 @@ sqrt2Attr = CircularAttribute Sqrt2 1 (
   Let "old" (Node <.> Sqrt2 <?> [Arg 0]) (
       Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
           Let "new2" (Node <.> Square <?> [Var "new"]) (
-              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              IfLt (Arg 0) (Var "new2") (Var "old") (Var "new")
               )
           )
       )
@@ -60,7 +60,7 @@ sqrt3Attr = CircularAttribute Sqrt3 1 (
   Let "old" (Node <.> Sqrt4 <?> [Arg 0]) (
       Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
           Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) (
-              IfElse (Func "_builtin_lt" [Arg 0, Var "new2"]) (Var "old") (Var "new")
+              IfLt (Arg 0) (Var "new2") (Var "old") (Var "new")
               )
           )
       )
@@ -88,7 +88,7 @@ sqrt5CircAttr = Attribute Sqrt5Circ 2 $
       Let "old" (Node <.> Sqrt5Circ <?> [arg, oldIter]) $
       Let "new" (Func "_builtin_add" [Var "old", IVal 1]) $
       Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) $
-      IfElse (Func "_builtin_lt" [arg, Var "new2"]) (Var "old") (Var "new")
+      IfLt arg (Var "new2") (Var "old") (Var "new")
     )
 
 
@@ -122,7 +122,7 @@ sqrt6CircAttr = Attribute Sqrt6Circ 2 $
       Let "old" (Node <.> Sqrt6Id <?> [arg, oldIter]) $
       Let "new" (Func "_builtin_add" [Var "old", IVal 1]) $
       Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) $
-      IfElse (Func "_builtin_lt" [arg, Var "new2"]) (Var "old") (Var "new")
+      IfLt arg (Var "new2") (Var "old") (Var "new")
     )
 
 sqrt6DriverAttr :: SaigaElement PlayAttr a
@@ -169,7 +169,5 @@ playProgram ast = [
 
   BuiltinFunction "_builtin_add" 2 $ \[DInt m, DInt n] -> DInt $ m + n,
 
-  BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n,
-
-  BuiltinFunction "_builtin_lt" 2 $ \[DInt m, DInt n] -> DBool $ m < n
+  BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n
   ]

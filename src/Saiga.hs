@@ -23,6 +23,7 @@ data Expr a = IVal Int
             | Func String [Expr a]
             | IfElse (Expr a) (Expr a) (Expr a)
             | IfEq (Expr a) (Expr a) (Expr a) (Expr a)
+            | IfLt (Expr a) (Expr a) (Expr a) (Expr a)
             | Arg Int
             | Node
             | Let String (Expr a) (Expr a)
@@ -202,7 +203,7 @@ data AttributeCtx attr a = AttributeCtx {
 
 data LogEntry attr a = LogEntry [Domain a] (AST a) (Expr attr) (Domain a)
 
-evalM :: Eq a =>
+evalM :: Ord a =>
          AttributeCtx attr a -- context
       -> [Domain a] -- argument values
       -> AST a -- current node
@@ -270,6 +271,12 @@ evalM ctx args n e@(IfEq l r t f) = do
   if l' == r' then evalM ctx args n t
     else evalM ctx args n f
 
+evalM ctx args n e@(IfLt l r t f) = do
+  l' <- evalM ctx args n l
+  r' <- evalM ctx args n r
+  if l' < r' then evalM ctx args n t
+    else evalM ctx args n f
+
 evalM ctx args n expr@(Func name es) = do
   args' <- mapM (evalM ctx args n) es
   case ctx.func name of
@@ -291,7 +298,7 @@ evalM ctx argb n e@(Attr b attr args) = do
     _ -> logErr argb n e "Only AST nodes have attributes."
 
 
-evalWithLog :: Eq a =>
+evalWithLog :: Ord a =>
                AttributeCtx attr a -- context
             -> [Domain a] -- argument values
             -> AST a -- current node

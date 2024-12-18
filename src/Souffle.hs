@@ -18,14 +18,16 @@ instance Souffle a => Souffle (Term a) where
   soufflePrint (Constant c) = soufflePrint c
   soufflePrint (Expr "_add" [l, r] _) = "(" ++ soufflePrint l ++ " + " ++ soufflePrint r ++ ")"
   soufflePrint (Expr "_mul" [l, r] _) = "(" ++ soufflePrint l ++ " * " ++ soufflePrint r ++ ")"
-  soufflePrint (Expr "_lt" [l, r] _) = "(" ++ soufflePrint l ++ " < " ++ soufflePrint r ++ ")"
   soufflePrint _ = error "Print not implemented for term."
 
 instance Souffle a => Souffle (Atom a Bool) where
   soufflePrint (Literal p ts _) = p ++ "(" ++ intercalate ", " (soufflePrint <$> ts) ++ ")"
   soufflePrint (Bind src dst) = soufflePrint dst ++ " = " ++ soufflePrint src
+  soufflePrint (Function "_builtin_neq" [l, r] _) = soufflePrint l ++ " != " ++ soufflePrint r
   soufflePrint (Function "_builtin_eq" [l, r] _) = soufflePrint l ++ " = " ++ soufflePrint r
-  soufflePrint _ = "Print not implemented for atom."
+  soufflePrint (Function "_builtin_lt" [l, r] _) = soufflePrint l ++ " < " ++ soufflePrint r
+  soufflePrint (Function "_builtin_gte" [l, r] _) = soufflePrint l ++ " >= " ++ soufflePrint r
+  soufflePrint _ = error "Print not implemented for atom."
 
 instance Souffle a => Souffle (Clause a Bool) where
   soufflePrint (Clause [] _) = ""
