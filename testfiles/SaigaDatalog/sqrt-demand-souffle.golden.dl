@@ -1,0 +1,100 @@
+.decl Sqrt(_0:number, _1:number, _2:number)
+.decl Sqrt2(_0:number, _1:number, _2:number)
+.decl Sqrt3(_0:number, _1:number, _2:number)
+.decl Sqrt4(_0:number, _1:number, _2:number)
+.decl Sqrt5(_0:number, _1:number, _2:number)
+.decl Sqrt5Circ(_0:number, _1:number, _2:number, _3:number)
+.decl Sqrt5Driver(_0:number, _1:number, _2:number, _3:number)
+.decl Sqrt6(_0:number, _1:number, _2:number)
+.decl Sqrt6Circ(_0:number, _1:number, _2:number, _3:number)
+.decl Sqrt6Driver(_0:number, _1:number, _2:number, _3:number)
+.decl Sqrt6Id(_0:number, _1:number, _2:number, _3:number)
+.decl Square(_0:number, _1:number, _2:number)
+.decl d_Sqrt2_bbf(_0:number, _1:number)
+.decl d_Sqrt3_bbf(_0:number, _1:number)
+.decl d_Sqrt4_bbf(_0:number, _1:number)
+.decl d_Sqrt5Circ_bbbf(_0:number, _1:number, _2:number)
+.decl d_Sqrt5Driver_bbbf(_0:number, _1:number, _2:number)
+.decl d_Sqrt5_bbf(_0:number, _1:number)
+.decl d_Sqrt6Circ_bbbf(_0:number, _1:number, _2:number)
+.decl d_Sqrt6Driver_bbbf(_0:number, _1:number, _2:number)
+.decl d_Sqrt6Id_bbbf(_0:number, _1:number, _2:number)
+.decl d_Sqrt6_bbf(_0:number, _1:number)
+.decl d_Sqrt_bbf(_0:number, _1:number)
+.decl d_Square_bbf(_0:number, _1:number)
+
+Sqrt(_node, _arg_0, old) :- d_Sqrt_bbf(_node, _arg_0), Sqrt(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _d = (_arg_0 < new2), _d = true.
+d_Sqrt_bbf(_node, _arg_0) :- d_Sqrt_bbf(_node, _arg_0).
+Sqrt(_node, _arg_0, new) :- d_Sqrt_bbf(_node, _arg_0), Sqrt(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _d = (_arg_0 < new2), _d = false.
+d_Sqrt_bbf(_node, _arg_0) :- d_Sqrt_bbf(_node, _arg_0).
+Sqrt(_node, _arg_0, 0) :- d_Sqrt_bbf(_node, _arg_0).
+Sqrt2(_node, _arg_0, old) :- d_Sqrt2_bbf(_node, _arg_0), Sqrt2(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, Square(_node, new, _c), new2 = _c, _d = (_arg_0 < new2), _d = true.
+d_Sqrt2_bbf(_node, _arg_0) :- d_Sqrt2_bbf(_node, _arg_0).
+d_Square_bbf(_node, new) :- d_Sqrt2_bbf(_node, _arg_0), Sqrt2(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b.
+Sqrt2(_node, _arg_0, new) :- d_Sqrt2_bbf(_node, _arg_0), Sqrt2(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, Square(_node, new, _c), new2 = _c, _d = (_arg_0 < new2), _d = false.
+d_Sqrt2_bbf(_node, _arg_0) :- d_Sqrt2_bbf(_node, _arg_0).
+d_Square_bbf(_node, new) :- d_Sqrt2_bbf(_node, _arg_0), Sqrt2(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b.
+Sqrt2(_node, _arg_0, 0) :- d_Sqrt2_bbf(_node, _arg_0).
+Square(_node, _arg_0, _a) :- d_Square_bbf(_node, _arg_0), _a = (_arg_0 * _arg_0).
+Sqrt3(_node, _arg_0, old) :- d_Sqrt3_bbf(_node, _arg_0), Sqrt4(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _d = (_arg_0 < new2), _d = true.
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt3(_node, _arg_0, new) :- d_Sqrt3_bbf(_node, _arg_0), Sqrt4(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _d = (_arg_0 < new2), _d = false.
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt3(_node, _arg_0, 0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt4(_node, _arg_0, _a) :- d_Sqrt4_bbf(_node, _arg_0), Sqrt3(_node, _arg_0, _a).
+d_Sqrt3_bbf(_node, _arg_0) :- d_Sqrt4_bbf(_node, _arg_0).
+Sqrt5Circ(_node, _arg_0, _arg_1, 0) :- d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1), _arg_1 = 0.
+Sqrt5Circ(_node, _arg_0, _arg_1, old) :- d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1), Sqrt5Circ(_node, _arg_0, _b, _a), old = _a, _c = (old + 1), new = _c, _d = (new * new), new2 = _d, _e = (_arg_0 < new2), _e = true.
+d_Sqrt5Circ_bbbf(_node, _arg_0, _b) :- d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1).
+Sqrt5Circ(_node, _arg_0, _arg_1, new) :- d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1), Sqrt5Circ(_node, _arg_0, _b, _a), old = _a, _c = (old + 1), new = _c, _d = (new * new), new2 = _d, _e = (_arg_0 < new2), _e = false.
+d_Sqrt5Circ_bbbf(_node, _arg_0, _b) :- d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1).
+Sqrt5Driver(_node, _arg_0, _arg_1, old) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1), Sqrt5Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt5Circ(_node, _arg_0, _c, _b), new = _b, old = new.
+d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1).
+d_Sqrt5Circ_bbbf(_node, _arg_0, _c) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1), Sqrt5Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1).
+Sqrt5Driver(_node, _arg_0, _arg_1, _d) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1), Sqrt5Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt5Circ(_node, _arg_0, _c, _b), new = _b, Print not implemented for atom., _e = (_arg_1 + 1), Sqrt5Driver(_node, _arg_0, _e, _d).
+d_Sqrt5Circ_bbbf(_node, _arg_0, _arg_1) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1).
+d_Sqrt5Circ_bbbf(_node, _arg_0, _c) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1), Sqrt5Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1).
+d_Sqrt5Driver_bbbf(_node, _arg_0, _e) :- d_Sqrt5Driver_bbbf(_node, _arg_0, _arg_1), Sqrt5Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt5Circ(_node, _arg_0, _c, _b), new = _b, Print not implemented for atom., _e = (_arg_1 + 1).
+Sqrt5(_node, _arg_0, _a) :- d_Sqrt5_bbf(_node, _arg_0), Sqrt5Driver(_node, _arg_0, 0, _a).
+d_Sqrt5Driver_bbbf(_node, _arg_0, 0) :- d_Sqrt5_bbf(_node, _arg_0).
+Sqrt6Circ(_node, _arg_0, _arg_1, 0) :- d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1), _arg_1 = 0.
+Sqrt6Circ(_node, _arg_0, _arg_1, old) :- d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1), Sqrt6Id(_node, _arg_0, _b, _a), old = _a, _c = (old + 1), new = _c, _d = (new * new), new2 = _d, _e = (_arg_0 < new2), _e = true.
+d_Sqrt6Id_bbbf(_node, _arg_0, _b) :- d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1).
+Sqrt6Circ(_node, _arg_0, _arg_1, new) :- d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1), Sqrt6Id(_node, _arg_0, _b, _a), old = _a, _c = (old + 1), new = _c, _d = (new * new), new2 = _d, _e = (_arg_0 < new2), _e = false.
+d_Sqrt6Id_bbbf(_node, _arg_0, _b) :- d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1), Print not implemented for atom., _b = (_arg_1 + -1).
+Sqrt6Driver(_node, _arg_0, _arg_1, old) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt6Circ(_node, _arg_0, _c, _b), new = _b, old = new.
+d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1).
+d_Sqrt6Circ_bbbf(_node, _arg_0, _c) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1).
+Sqrt6Driver(_node, _arg_0, _arg_1, _d) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt6Circ(_node, _arg_0, _c, _b), new = _b, Print not implemented for atom., _e = (_arg_1 + 1), Sqrt6Driver(_node, _arg_0, _e, _d).
+d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1).
+d_Sqrt6Circ_bbbf(_node, _arg_0, _c) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1).
+d_Sqrt6Driver_bbbf(_node, _arg_0, _e) :- d_Sqrt6Driver_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a), old = _a, _c = (_arg_1 + 1), Sqrt6Circ(_node, _arg_0, _c, _b), new = _b, Print not implemented for atom., _e = (_arg_1 + 1).
+Sqrt6(_node, _arg_0, _a) :- d_Sqrt6_bbf(_node, _arg_0), Sqrt6Driver(_node, _arg_0, 0, _a).
+d_Sqrt6Driver_bbbf(_node, _arg_0, 0) :- d_Sqrt6_bbf(_node, _arg_0).
+Sqrt6Id(_node, _arg_0, _arg_1, _a) :- d_Sqrt6Id_bbbf(_node, _arg_0, _arg_1), Sqrt6Circ(_node, _arg_0, _arg_1, _a).
+d_Sqrt6Circ_bbbf(_node, _arg_0, _arg_1) :- d_Sqrt6Id_bbbf(_node, _arg_0, _arg_1).
+
+.output Sqrt
+.output Sqrt2
+.output Sqrt3
+.output Sqrt4
+.output Sqrt5
+.output Sqrt5Circ
+.output Sqrt5Driver
+.output Sqrt6
+.output Sqrt6Circ
+.output Sqrt6Driver
+.output Sqrt6Id
+.output Square
+.output d_Sqrt2_bbf
+.output d_Sqrt3_bbf
+.output d_Sqrt4_bbf
+.output d_Sqrt5Circ_bbbf
+.output d_Sqrt5Driver_bbbf
+.output d_Sqrt5_bbf
+.output d_Sqrt6Circ_bbbf
+.output d_Sqrt6Driver_bbbf
+.output d_Sqrt6Id_bbbf
+.output d_Sqrt6_bbf
+.output d_Sqrt_bbf
+.output d_Square_bbf

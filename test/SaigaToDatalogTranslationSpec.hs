@@ -7,6 +7,7 @@ import SaigaPicoJava
 import DemandTransformation
 import CFGLang
 import PlaygroundLang
+import Souffle
 
 import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.Golden
@@ -57,8 +58,17 @@ translateToClause' = translateToClause
 dumpProgramToFile :: (Show a, Show s) => Program a s -> FilePath -> IO ()
 dumpProgramToFile p f = writeFile f (prettyProgram p)
 
+
+dumpSouffleProgramToFile :: (Souffle a) => Program a Bool -> FilePath -> IO ()
+dumpSouffleProgramToFile p f = writeFile f (soufflePrint p)
+
+
 goldenProgramTest tname p goldenFile outputFile =
   goldenVsFile tname goldenFile outputFile (dumpProgramToFile p outputFile)
+
+goldenSouffleTest tname p goldenFile outputFile =
+  goldenVsFile tname goldenFile outputFile (dumpSouffleProgramToFile p outputFile)
+
 
 saigaDatalogTests = testGroup "Saiga to Datalog translation" [
   --
@@ -193,15 +203,18 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
 
   -- toy examples
   let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
-      demand = Map.fromList [
-        ("Sqrt", Set.singleton $ Set.fromList [0, 1]),
-        ("Sqrt2", Set.singleton $ Set.fromList [0, 1]),
-        ("Sqrt3", Set.singleton $ Set.fromList [0, 1]),
-        ("Sqrt5", Set.singleton $ Set.fromList [0, 1])]
-      dlToySqrtDemand = transformProgram dlToySqrt demand
+      dlToySqrtDemand = transformProgram dlToySqrt sqrtDemand
   in goldenProgramTest "Translate sqrt and demand-transform" dlToySqrtDemand
     "testfiles/SaigaDatalog/sqrt-demand.dl.golden"
     "testfiles/SaigaDatalog/sqrt-demand.dl.out",
+
+  -- toy examples
+  let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
+      dlToySqrtDemand = transformProgram dlToySqrt sqrtDemand
+  in goldenSouffleTest "Translate sqrt, demand-transform, emit Souffle" dlToySqrtDemand
+    "testfiles/SaigaDatalog/sqrt-demand-souffle.golden.dl"
+    "testfiles/SaigaDatalog/sqrt-demand-souffle.out.dl",
+
 
   let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
   in goldenProgramTest "Translate sqrt" dlToySqrt
@@ -212,3 +225,10 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
 edbPredsPicoJava = Set.fromList ["Child","Children","Kind","Name",
                                   "Parent",
                                   "mkUnknownClass","mkUnknownDecl","predefs"]
+
+sqrtDemand = Map.fromList [
+        ("Sqrt", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt2", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt3", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt5", Set.singleton $ Set.fromList [0, 1]),
+        ("Sqrt6", Set.singleton $ Set.fromList [0, 1])]
