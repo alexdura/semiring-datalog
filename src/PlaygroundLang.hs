@@ -17,7 +17,10 @@ data PlayAttr = Sqrt
               | Sqrt5Circ -- circular definition
               | Sqrt5Driver -- computation 'driver'
               | Sqrt5
-
+              | Sqrt6Circ
+              | Sqrt6Driver
+              | Sqrt6
+              | Sqrt6Id
               deriving (Eq, Show, Enum)
 
 instance SaigaAttribute PlayAttr
@@ -103,6 +106,44 @@ sqrt5Attr :: SaigaElement PlayAttr a
 sqrt5Attr = Attribute Sqrt5 1 $
   Node <.> Sqrt5Driver <?> [Arg 0, IVal 0]
 
+sqrt6CircAttr :: SaigaElement PlayAttr a
+sqrt6CircAttr = Attribute Sqrt6Circ 2 $
+  let iter = Arg 1
+      oldIter = Func "_builtin_add" [iter, IVal (-1)]
+      arg = Arg 0
+  in
+    IfEq iter (IVal 0)
+    -- then
+    (
+      IVal 0
+    )
+    -- else
+    (
+      Let "old" (Node <.> Sqrt6Id <?> [arg, oldIter]) $
+      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) $
+      Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) $
+      IfElse (Func "_builtin_lt" [arg, Var "new2"]) (Var "old") (Var "new")
+    )
+
+sqrt6DriverAttr :: SaigaElement PlayAttr a
+sqrt6DriverAttr = Attribute Sqrt6Driver 2 $
+  let iter = Arg 1
+      nextIter = Func "_builtin_add" [iter, IVal 1]
+      arg = Arg 0
+  in
+    Let "old" (Node <.> Sqrt6Circ <?> [arg, iter]) $
+    Let "new" (Node <.> Sqrt6Circ <?> [arg, nextIter]) $
+    IfEq (Var "old") (Var "new") (Var "old") (Node <.> Sqrt6Driver <?> [arg, nextIter])
+
+sqrt6Attr :: SaigaElement PlayAttr a
+sqrt6Attr = Attribute Sqrt6 1 $
+  Node <.> Sqrt6Driver <?> [Arg 0, IVal 0]
+
+
+sqrt6IdAttr :: SaigaElement PlayAttr a
+sqrt6IdAttr = Attribute Sqrt6Id 2 $
+  Node <.> Sqrt6Circ <?> [Arg 0, Arg 1]
+
 
 playProgram :: AST (String, Int) -> SaigaProgram PlayAttr (String, Int)
 
@@ -120,6 +161,12 @@ playProgram ast = [
   sqrt5DriverAttr,
   sqrt5Attr,
   --
+  sqrt6CircAttr,
+  sqrt6DriverAttr,
+  sqrt6Attr,
+  sqrt6IdAttr,
+  --
+
   BuiltinFunction "_builtin_add" 2 $ \[DInt m, DInt n] -> DInt $ m + n,
 
   BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n,
