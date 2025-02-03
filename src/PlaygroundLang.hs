@@ -4,7 +4,7 @@ module PlaygroundLang (playProgram) where
 
 import AST
 import Saiga
-import Prelude hiding (otherwise)
+import Prelude hiding (otherwise, (<*>))
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 
@@ -25,12 +25,18 @@ data PlayAttr = Sqrt
 
 instance SaigaAttribute PlayAttr
 
+infixl 6 <+>
+(<+>) x y = Func "_builtin_add" [x, y]
+
+infixl 7 <*>
+(<*>) x y = Func "_builtin_mul" [x, y]
+
 
 sqrtAttr :: SaigaElement PlayAttr a
 sqrtAttr = CircularAttribute Sqrt 1 (
   Let "old" (Node <.> Sqrt <?> [Arg 0]) (
-      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
-          Let "new2" (Func "_builtin_mul" [Var "new", Var "new"]) (
+      Let "new" (Var "old" <+> IVal 1) (
+          Let "new2" (Var "new" <*> Var "new") (
               IfLt (Arg 0) (Var "new2") (Var "old") (Var "new")
               )
           )
@@ -46,7 +52,7 @@ squareAttr = Attribute Square 1 $
 sqrt2Attr :: SaigaElement PlayAttr a
 sqrt2Attr = CircularAttribute Sqrt2 1 (
   Let "old" (Node <.> Sqrt2 <?> [Arg 0]) (
-      Let "new" (Func "_builtin_add" [Var "old", IVal 1]) (
+      Let "new" (Var "old" <+> IVal 1) (
           Let "new2" (Node <.> Square <?> [Var "new"]) (
               IfLt (Arg 0) (Var "new2") (Var "old") (Var "new")
               )
