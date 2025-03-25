@@ -121,16 +121,6 @@ typeAttr = Attribute Type 0 $
            (Node <.> kind === "VarDecl", IfElse (Node <.> access <.> decl <.> kind === "ClassDecl") (Node <.> access <.> decl) mkUnknownClass),
            (otherwise, mkUnknownClass)]
 
--- picoJavaAttrLookup :: PicoJavaAttr -> AttributeDef PicoJavaAttr
--- picoJavaAttrLookup attr = case attr of
---   Decl -> declAttr
---   Type -> typeAttr
---   Lookup -> lookupAttr
---   RemoteLookup -> remoteLookup
---   LocalLookup -> localLookupAttr
---   Superclass -> superclassAttr
---   ua -> error $ "Missing attribute definition for " ++ show ua
-
 
 type PicoJavaAST = AST (String, Int)
 

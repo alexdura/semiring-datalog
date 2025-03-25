@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Saiga(prettyExpr, Expr(..), AttributeDef(..), SaigaElement(..), SaigaProgram, SaigaAttribute, (<?>),
+module Saiga(prettyExpr, Expr(..), SaigaElement(..), SaigaProgram, SaigaAttribute, (<?>),
              (<.>), (===), (<&&>), (<||>), (<:>), guard, otherwise,  int, nil, not,
              Domain(..), prettyDomain, AttributeCtx, makeAttributeCtx, evalWithLog, LogEntry(..)) where
 
@@ -113,8 +113,8 @@ lookupFunction name = find (\case
 makeAttributeCtx :: SaigaAttribute attr => SaigaProgram attr a -> AttributeCtx attr a
 makeAttributeCtx p = AttributeCtx {
   lookup = \attr -> case lookupAttribute attr p of
-      Just (Attribute _ _ expr) -> AttributeDef attr expr
-      _ -> error "Attribute definition not found.",
+      Just (Attribute _ _ expr) -> Just expr
+      _ -> Nothing,
 
   builtin = \attr -> case lookupAttribute attr p of
       Just (BuiltinAttribute _ _ f) -> Just (f . DNode)
@@ -130,8 +130,8 @@ makeAttributeCtx p = AttributeCtx {
   }
 
 
-data AttributeDef a = AttributeDef {attr::a, equation::(Expr a)}
-  deriving (Eq, Show)
+-- data AttributeDef a = AttributeDef {attr::a, equation::(Expr a)}
+--   deriving (Eq, Show)
 
 
 int = IVal
@@ -192,7 +192,7 @@ prettyDomain (DList ds) = "[" ++ intercalate ", "  (prettyDomain <$> ds) ++ "]"
 
 -- context for attributes
 data AttributeCtx attr a = AttributeCtx {
-  lookup :: attr -> AttributeDef attr,
+  lookup :: attr -> Maybe (Expr attr),
   builtin :: attr -> Maybe (AST a -> [Domain a] -> Domain a),
   func :: String -> Maybe (Expr attr),
   builtinFunc :: String -> Maybe ([Domain a] -> Domain a)
@@ -291,10 +291,11 @@ evalM ctx argb n e@(Attr b attr args) = do
   case b' of
     DNode b'' -> case ctx.builtin attr of
       Just f -> logRetAttr arg' b'' e (f b'' arg')
-      Nothing -> do
-        let eq = (ctx.lookup attr).equation
-        r <- evalM ctx arg' b'' eq
-        logRetAttr arg' b'' e r
+      Nothing -> case ctx.lookup attr of
+                   Just eq -> do
+                     r <- evalM ctx arg' b'' eq
+                     logRetAttr arg' b'' e r
+                   Nothing -> logErr argb n e "Missing attribute definition"
     _ -> logErr argb n e "Only AST nodes have attributes."
 
 
