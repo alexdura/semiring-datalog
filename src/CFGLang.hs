@@ -45,20 +45,30 @@ data CFGAttr = Child
              | FindDecl
             -- | Follow
              | Nullable
-             deriving (Eq, Show, Enum)
+             deriving (Eq, Show, Enum, Ord)
 
 instance SaigaAttribute CFGAttr
 
 
 firstAttr :: SaigaElement CFGAttr a
-firstAttr =  Attribute First 0 $
+firstAttr =  CircularAttribute First 0 (
   let kind = Kind <?> []
       first  = First <?> []
       decl = Decl <?> []
+      parent = Parent <?> []
   in guard [
     (
       Node <.> kind === "NUse",
       Node <.> decl <.> first
+    ),
+    (
+      Node <.> kind === "NDecl",
+      Node <.> parent <.> first
+    ),
+    (
+      Node <.> kind === "Rule",
+      let prodList = Child <?> [int 1] in
+        Node <.> prodList <.> first
     ),
     (
       Node <.> kind === "EmptySymbolList",
@@ -85,8 +95,13 @@ firstAttr =  Attribute First 0 $
       Node <.> kind === "EmptyProdList",
       Nil
     ),
+    (
+      Node <.> kind === "Terminal",
+      (Node <.> Name <?> []) <:> Nil
+    ),
+
     (otherwise, SVal "Missing case")
-    ]
+    ]) Nil "Not Implemented"
 
 
 nullableAttr :: SaigaElement CFGAttr a
@@ -187,7 +202,7 @@ isElemOfExpr =
     -- l is not empty
     let h = Head l
         t = Tail l
-    in IfEq l h (BVal True) (Func "isElemOf" [e, t]))
+    in IfEq e h (BVal True) (Func "isElemOf" [e, t]))
 
 
 listUnionExpr :: Expr attr

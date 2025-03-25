@@ -8,8 +8,6 @@ import AST
 import Util
 
 import Util (findNodeByPath, nodeId, parseAndNumber)
-import GHC.Num (Natural(NB))
-import Text.Printf (FormatAdjustment(ZeroPad))
 
 saigaCFGLangTests = testGroup "Saiga attributes for the CFG language" [
   testCase "Number nodes" $
@@ -25,15 +23,40 @@ saigaCFGLangTests = testGroup "Saiga attributes for the CFG language" [
         expr = Node <.> Decl <?> []
     in nodeId (evalExpr1 cfgProgram cfg1' nid expr) @?= 19,
 
-  testCase "Compute nullable attribute - non circular" $
+  testCase "Compute X.nullable attribute - non circular" $
     let nid = 0 -- "NDecl X"
         expr = Node <.> Nullable <?> []
     in evalExpr1 cfgProgram cfg1' nid expr @?= DBool True,
 
-  localOption (mkTimeout $ 5 * 10^6) $ testCase "Compute nullable attribute - circular" $
-    let nid = 20 -- "NDecl Y"
+  testCase "Compute Y.nullable attribute - non circular" $
+    let nid = 11 -- "NDecl Y"
         expr = Node <.> Nullable <?> []
-    in evalExpr1 cfgProgram cfg1' nid expr @?= DBool True
+    in evalExpr1 cfgProgram cfg1' nid expr @?= DBool True,
+
+  testCase "Compute Z.nullable attribute - circular" $
+    let nid = 20 -- "NDecl Z"
+        expr = Node <.> Nullable <?> []
+    in evalExpr1 cfgProgram cfg1' nid expr @?= DBool False,
+
+  testCase "Compute X.first attribute - non circular" $
+    let nid = 0 -- "NDecl X"
+        expr = Node <.> First <?> []
+    in evalExpr1 cfgProgram cfg1' nid expr @?= (DList $ DString <$> ["c", "a"]),
+
+  testCase "Compute Y.first attribute - non circular" $
+    let nid = 11 -- "NDecl Y"
+        expr = Node <.> First <?> []
+    in evalExpr1 cfgProgram cfg1' nid expr @?= (DList [DString "c"]),
+
+  localOption (mkTimeout $ 2 * 10^6) $ testCase "Compute Z.first attribute - circular" $
+    let nid = 20 -- "NDecl Z"
+        expr = Node <.> First <?> []
+    in evalExpr1 cfgProgram cfg1' nid expr @?= DBool False
+
+  -- localOption (mkTimeout $ 10 * 10^6) $ testCase "Compute Z.first attribute - circular log" $
+  --   let nid = 20 -- "NDecl Z"
+  --       expr = Node <.> First <?> []
+  --   in putStrLn $ evalExprDebug cfgProgram cfg1' nid expr 1000000
 
   ]
 

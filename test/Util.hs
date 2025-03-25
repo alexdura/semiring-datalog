@@ -66,9 +66,16 @@ evalExpr1 p ast nid expr =
       Left err -> error $ err ++ "\n" ++ prettyLog log
       Right r -> r
 
-evalExprDebug ast nid expr logsize =
+evalExprDebug :: Saiga.SaigaAttribute a
+              => (PicoJava.AST (String, Int) -> Saiga.SaigaProgram a (String, Int)) -- Saiga program
+              -> PicoJava.AST (String, Int) -- AST
+              -> Int -- node id
+              -> Saiga.Expr a -- expression to evaluate
+              -> Int -- log size
+              -> String -- result
+evalExprDebug p ast nid expr logsize =
   let n = fromJust $ findNodeById ast nid
-      ctx = Saiga.makeAttributeCtx (SaigaPicoJava.picoJavaProgram ast)
+      ctx = Saiga.makeAttributeCtx (p ast)
       log = take logsize $ snd $ Saiga.evalWithLog ctx [Saiga.DList []] n expr
   in
     prettyLog log

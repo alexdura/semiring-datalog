@@ -40,7 +40,7 @@ instance (Show a, Show b) => (Show (Atom a b)) where
 
 data TestAttribute = Attr1
                    | Attr2
-                   deriving (Show, Enum, Eq)
+                   deriving (Show, Enum, Eq, Ord)
 
 instance SaigaAttribute TestAttribute
 

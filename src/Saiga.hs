@@ -9,8 +9,10 @@ import Data.String ( IsString(..) )
 import PicoJava(AST(..))
 import Control.Monad.Writer hiding (guard)
 import Control.Monad.Except hiding (guard)
+import Control.Monad.State hiding (guard)
 import Data.List (intercalate, find, singleton)
-
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict (Map)
 
 data Expr a = IVal Int
             | BVal Bool
@@ -79,7 +81,7 @@ data SaigaElement attr a = Attribute attr Int (Expr attr)
 
 type SaigaProgram attr a = [SaigaElement attr a]
 
-class (Eq a, Show a, Enum a) => SaigaAttribute a
+class (Ord a, Show a, Enum a) => SaigaAttribute a
 
 isAttribute :: SaigaElement attr a -> Bool
 isAttribute (Attribute {}) = True
@@ -102,6 +104,7 @@ lookupAttribute :: (SaigaAttribute attr) => attr -> SaigaProgram attr a -> Maybe
 lookupAttribute name = find (\case
                                 Attribute attr _ _ -> attr == name
                                 BuiltinAttribute attr _ _ -> attr == name
+                                CircularAttribute attr _ _ _ _ -> attr == name
                                 _ -> False)
 
 lookupFunction :: (SaigaAttribute attr) => String -> SaigaProgram attr a -> Maybe (SaigaElement attr a)
@@ -118,6 +121,10 @@ makeAttributeCtx p = AttributeCtx {
 
   builtin = \attr -> case lookupAttribute attr p of
       Just (BuiltinAttribute _ _ f) -> Just (f . DNode)
+      _ -> Nothing,
+
+  circular = \attr -> case lookupAttribute attr p of
+      Just (CircularAttribute _ _ f i j) -> Just (f, i, j)
       _ -> Nothing,
 
   func = \name -> case lookupFunction name p of
@@ -194,35 +201,118 @@ prettyDomain (DList ds) = "[" ++ intercalate ", "  (prettyDomain <$> ds) ++ "]"
 data AttributeCtx attr a = AttributeCtx {
   lookup :: attr -> Maybe (Expr attr),
   builtin :: attr -> Maybe (AST a -> [Domain a] -> Domain a),
+  circular :: attr -> Maybe (Expr attr, Expr attr, String),
   func :: String -> Maybe (Expr attr),
   builtinFunc :: String -> Maybe ([Domain a] -> Domain a)
   }
 
+data AttrState a = AttrState {attrValue :: Domain a,
+                              attrComputed :: Bool,
+                              attrVisited :: Bool}
 
+
+mkAttrState v = AttrState v False False
+
+
+data EvalCtx attr a = EvalCtx {
+  attrCache :: Map (AST a , attr, [Domain a]) (AttrState a),
+  inCircle :: Bool,
+  change :: Bool
+  }
+
+mkEvalCtx =
+  EvalCtx Map.empty False False
+
+
+computeFixpoint :: (Ord a,
+                    Ord attr)
+                => AttributeCtx attr a
+                -> AST a -- node
+                -> attr -- attribute
+                -> [Domain a] -- args
+                -> Expr attr -- equation
+                -> Domain a -- old value
+                -> EvalMonad attr a (Domain a)
+
+computeFixpoint ctx b attr args expr v = do
+  ectx <- get
+  put $ ectx {change = False}
+  v' <- evalM ctx args b expr
+  ectx' <- get
+  if v' /= v || ectx'.change then do
+    put $ ectx' {change = True}
+    computeFixpoint ctx b attr args expr v'
+    else return v'
+
+
+evalCircularAttr :: (Ord a,
+                     Ord attr)
+                 => AttributeCtx attr a
+                 -> AST a -- node
+                 -> attr -- attribute
+                 -> [Domain a] -- args
+                 -> Expr attr -- equation
+                 -> Expr attr -- initial value
+                 -> EvalMonad attr a (Domain a)
+
+evalCircularAttr ctx b attr args expr iexpr = do
+  ectx <- get
+  let attrCacheKey = (b, attr, args)
+  case Map.lookup attrCacheKey ectx.attrCache of
+    Just as -> if as.attrComputed then return as.attrValue
+               else if ectx.inCircle then if as.attrVisited then return as.attrValue
+                                          else do -- !visited
+      put $ ectx {attrCache = Map.insert attrCacheKey as {attrVisited = True} ectx.attrCache}
+      v' <- evalM ctx args b expr
+      ectx' <- get
+      put $ ectx' {change = ectx'.change || v' /= as.attrValue,
+                   attrCache = Map.insert attrCacheKey as {attrValue = v',
+                                                           attrVisited = False} ectx'.attrCache
+                  }
+      return v'
+                    else do -- !inCircle
+      put $ ectx {inCircle = True,
+                  attrCache = Map.insert attrCacheKey as {attrVisited = True} ectx.attrCache}
+      v' <- computeFixpoint ctx b attr args expr as.attrValue
+      ectx' <- get
+      put $ ectx' {inCircle = False,
+                   attrCache = Map.insert attrCacheKey as {attrValue = v',
+                                                           attrVisited = False,
+                                                           attrComputed = True}
+                               ectx'.attrCache}
+      return v'
+    Nothing -> do -- this should trigger a circular evaluation
+      v' <- evalM ctx args b iexpr
+      ectx' <- get
+      put $ ectx' {attrCache = Map.insert attrCacheKey (mkAttrState v') ectx'.attrCache}
+      evalCircularAttr ctx b attr args expr iexpr
+
+
+type EvalMonad attr a r = ExceptT String (WriterT [LogEntry attr a] (State (EvalCtx attr a))) r
 
 
 data LogEntry attr a = LogEntry [Domain a] (AST a) (Expr attr) (Domain a)
 
-evalM :: Ord a =>
-         AttributeCtx attr a -- context
+evalM :: (Ord a, Ord attr)
+      => AttributeCtx attr a -- context
       -> [Domain a] -- argument values
       -> AST a -- current node
       -> Expr attr -- expression
-      -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+      -> EvalMonad attr a (Domain a)
 
-logRet :: [Domain a] -> AST a -> Expr attr -> Domain a -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logRet :: [Domain a] -> AST a -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
 logRet args n e r = do
-  -- lift $ tell [LogEntry arg n e r]
+  -- lift $ tell [LogEntry args n e r]
   return r
 
 
-logRetAttr :: [Domain a] -> AST a -> Expr attr -> Domain a -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logRetAttr :: [Domain a] -> AST a -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
 logRetAttr args n e r = do
   lift $ tell [LogEntry args n e r]
   return r
 
 
-logErr :: [Domain a] -> AST a -> Expr attr -> String -> ExceptT String (Writer [LogEntry attr a]) (Domain a)
+logErr :: [Domain a] -> AST a -> Expr attr -> String -> EvalMonad attr a (Domain a)
 logErr args n e m = do
   lift $ tell [LogEntry args n e (DBool False)]
   throwError m
@@ -295,17 +385,20 @@ evalM ctx argb n e@(Attr b attr args) = do
                    Just eq -> do
                      r <- evalM ctx arg' b'' eq
                      logRetAttr arg' b'' e r
-                   Nothing -> logErr argb n e "Missing attribute definition"
+                   Nothing -> case ctx.circular attr of
+                     Just (eq, i, j) -> do
+                       r <- evalCircularAttr ctx b'' attr arg' eq i
+                       logRetAttr arg' b'' e r
+                     Nothing -> logErr argb n e "Missing attribute definition"
     _ -> logErr argb n e "Only AST nodes have attributes."
 
 
-evalWithLog :: Ord a =>
-               AttributeCtx attr a -- context
+evalWithLog :: (Ord a, Ord attr)
+            => AttributeCtx attr a -- context
             -> [Domain a] -- argument values
             -> AST a -- current node
             -> Expr attr -- expression
             -> (Either String (Domain a), [LogEntry attr a])
 
 evalWithLog ctx args n e =
-  let w = runExceptT (evalM ctx args n e) in
-    runWriter w
+  evalState (runWriterT $ runExceptT (evalM ctx args n e)) mkEvalCtx

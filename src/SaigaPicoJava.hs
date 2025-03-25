@@ -21,7 +21,7 @@ data PicoJavaAttr = Decl
                   | Superclass
                   | Type
                   | IsUnknown
-                  deriving (Eq, Show, Enum)
+                  deriving (Eq, Show, Enum, Ord)
 
 instance SaigaAttribute PicoJavaAttr
 

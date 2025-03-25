@@ -21,7 +21,7 @@ data PlayAttr = Sqrt
               | Sqrt6Driver
               | Sqrt6
               | Sqrt6Id
-              deriving (Eq, Show, Enum)
+              deriving (Eq, Show, Enum, Ord)
 
 instance SaigaAttribute PlayAttr
 
