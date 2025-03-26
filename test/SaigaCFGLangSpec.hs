@@ -41,22 +41,17 @@ saigaCFGLangTests = testGroup "Saiga attributes for the CFG language" [
   testCase "Compute X.first attribute - non circular" $
     let nid = 0 -- "NDecl X"
         expr = Node <.> First <?> []
-    in evalExpr1 cfgProgram cfg1' nid expr @?= (DList $ DString <$> ["c", "a"]),
+    in evalExpr1 cfgProgram cfg1' nid expr @?= (DList $ DString <$> ["a", "c"]),
 
   testCase "Compute Y.first attribute - non circular" $
     let nid = 11 -- "NDecl Y"
         expr = Node <.> First <?> []
     in evalExpr1 cfgProgram cfg1' nid expr @?= (DList [DString "c"]),
 
-  localOption (mkTimeout $ 2 * 10^6) $ testCase "Compute Z.first attribute - circular" $
+  testCase "Compute Z.first attribute - circular" $
     let nid = 20 -- "NDecl Z"
         expr = Node <.> First <?> []
-    in evalExpr1 cfgProgram cfg1' nid expr @?= DBool False
-
-  -- localOption (mkTimeout $ 10 * 10^6) $ testCase "Compute Z.first attribute - circular log" $
-  --   let nid = 20 -- "NDecl Z"
-  --       expr = Node <.> First <?> []
-  --   in putStrLn $ evalExprDebug cfgProgram cfg1' nid expr 1000000
+    in evalExpr1 cfgProgram cfg1' nid expr @?= (DList $ DString <$> ["a", "c", "d"])
 
   ]
 

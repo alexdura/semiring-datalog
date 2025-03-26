@@ -204,20 +204,31 @@ isElemOfExpr =
         t = Tail l
     in IfEq e h (BVal True) (Func "isElemOf" [e, t]))
 
+elementInsert :: Expr attr
+elementInsert =
+  let e = Arg 0
+      l = Arg 1
+  in
+    IfEq l Nil (e <:> Nil) (
+    let h = Head l
+    in
+      IfLt e h (e <:> l) (
+      let t = Tail l in
+        IfLt h e (h <:> Func "elementInsert" [e, t]) l
+    )
+    )
 
 listUnionExpr :: Expr attr
 listUnionExpr =
   let l1 = Arg 0
       l2 = Arg 1
   in
-    IfEq l1 Nil l2 (IfEq l2 Nil l1 (
-                       -- l1 and l2 are not nil
-                       let h1 = Head l1
-                           t1 = Tail l1
-                       in
-                         IfElse (Func "isElemOf" [h1, l2])
-                         (Func "listUnion" [t1, l2])
-                         (Func "listUnion" [t1, h1 <:> l2])))
+    IfEq l1 Nil l2 (
+    -- l1 is not nil
+    let h1 = Head l1
+        t1 = Tail l1
+    in
+      Func "listUnion" [t1, Func "elementInsert" [h1, l2]])
 
 findDeclInList :: Expr CFGAttr
 findDeclInList =
@@ -270,6 +281,8 @@ cfgProgram ast =
     Function "listUnion" 2 listUnionExpr,
 
     Function "findDeclInList" 2 findDeclInList,
+
+    Function "elementInsert" 2 elementInsert,
 
     -- built-in functions
     BuiltinFunction "mkUnknownDecl" 0 $
