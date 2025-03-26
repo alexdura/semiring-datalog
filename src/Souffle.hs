@@ -34,6 +34,9 @@ instance Souffle a => Souffle (Clause a Bool) where
   soufflePrint (Clause hs []) = intercalate ", " (soufflePrint <$> hs) ++ "."
   soufflePrint (Clause hs bs) = intercalate ", " (soufflePrint <$> hs) ++ " :- " ++
                                 intercalate ", " (soufflePrint <$> bs) ++ "."
+  soufflePrint (SubsumptionClause hl hr bs) = soufflePrint hl ++ " <= " ++
+                                              soufflePrint hr ++ " :- " ++
+                                              intercalate ", " (soufflePrint <$> bs) ++ "."
 
 
 arities :: Program a s -> Map Predicate Int

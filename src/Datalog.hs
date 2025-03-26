@@ -7,6 +7,9 @@ import Data.List
 newtype Program a s = Program [Clause a s]
 
 data Clause a s = Clause { heads :: [Atom a s], body :: [Atom a s]}
+                | SubsumptionClause { headl :: Atom a s,
+                                      headr :: Atom a s,
+                                      sbody :: [Atom a s] }
 
 data Atom a s = Literal Predicate [Term a] (s -> s)
               | Value s
