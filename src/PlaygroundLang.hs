@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module PlaygroundLang (playProgram) where
+module PlaygroundLang (playProgram, PlayAttr(..)) where
 
 import AST
 import Saiga
@@ -10,6 +10,7 @@ import Data.Maybe
 
 
 data PlayAttr = Sqrt
+              | Sqrt1
               | Square
               | Sqrt2
               | Sqrt3
@@ -41,6 +42,16 @@ sqrtAttr = CircularAttribute Sqrt 1 (
               )
           )
       )
+  ) (IVal 0) "NotImplemented"
+
+sqrt1Attr :: SaigaElement PlayAttr a
+sqrt1Attr = CircularAttribute Sqrt1 1 (
+  let arg = Arg 0
+      old = Node <.> Sqrt1 <?> [arg]
+      new = old <+> (IVal 1)
+      new2 = new <*> new
+  in
+    IfLt arg new2 old new
   ) (IVal 0) "NotImplemented"
 
 
@@ -156,6 +167,7 @@ playProgram :: AST (String, Int) -> SaigaProgram PlayAttr (String, Int)
 playProgram ast = [
   -- single attribute
   sqrtAttr,
+  sqrt1Attr, -- no variables
   -- circular ---dep---> non-circular
   sqrt2Attr,
   squareAttr,

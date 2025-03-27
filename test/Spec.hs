@@ -7,6 +7,7 @@ import SaigaToDatalogTranslationSpec
 import DemandTransformationSpec
 import DatalogPicoJavaSpec
 import SaigaCFGLangSpec
+import PlaygroundLangSpec
 
 main = defaultMain $ testGroup "all" [
   evalTests,
@@ -17,5 +18,6 @@ main = defaultMain $ testGroup "all" [
   saigaDatalogTests,
   demandTransformationTests,
   saigaToDatalogRunnableTests,
-  saigaCFGLangTests
+  saigaCFGLangTests,
+  playgroundLangTests
   ]

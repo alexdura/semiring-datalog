@@ -70,6 +70,27 @@ prettyExpr parentPrio b@(IfElse c t f) =
     parenthesize parentPrio currentPrio ("if " ++ prettyExpr currentPrio c ++ " then " ++ prettyExpr currentPrio t ++ " else " ++ prettyExpr currentPrio f)
 prettyExpr _ (Arg n) = "arg[" ++ show n ++ "]"
 prettyExpr _ Node = "node"
+prettyExpr _ (Var name) = name
+prettyExpr _ (Let name expr1 expr2) = "let " ++ name ++ " = " ++ (prettyExpr 0 expr1) ++ " in " ++ (prettyExpr 0 expr2)
+
+prettyExpr parentPrio b@(IfEq l r t f) =
+  let currentPrio = priority b in
+    parenthesize parentPrio currentPrio
+    ("if " ++
+      prettyExpr currentPrio l ++ " == " ++ prettyExpr currentPrio r ++
+      " then " ++ prettyExpr currentPrio t ++
+      " else " ++ prettyExpr currentPrio f)
+
+prettyExpr parentPrio b@(IfLt l r t f) =
+  let currentPrio = priority b in
+    parenthesize parentPrio currentPrio
+    ("if " ++
+      prettyExpr currentPrio l ++ " < " ++ prettyExpr currentPrio r ++
+      " then " ++ prettyExpr currentPrio t ++
+      " else " ++ prettyExpr currentPrio f)
+
+--prettyExpr _ e = "Missing pretty printing for expression " ++ show e
+
 
 data SaigaElement attr a = Attribute attr Int (Expr attr)
                          | CircularAttribute attr Int (Expr attr)
@@ -262,10 +283,16 @@ computeFixpoint ctx env attr expr v = do
   put $ ectx {change = False}
   v' <- evalM ctx env expr
   ectx' <- get
+  let attrCacheKey = (fromJust env.node, attr, env.args)
+      as = fromJust $ Map.lookup attrCacheKey ectx.attrCache
   if v' /= v || ectx'.change then do
-    put $ ectx' {change = True}
+    put $ ectx' {
+      change = True,
+      attrCache = Map.insert attrCacheKey as {attrValue = v'} ectx'.attrCache
+      }
     computeFixpoint ctx env attr expr v'
-    else return v'
+  else do
+    return v'
 
 
 evalCircularAttr :: (Ord a,
@@ -314,11 +341,12 @@ type EvalMonad attr a r = ExceptT String (WriterT [LogEntry attr a] (State (Eval
 
 
 data LogEntry attr a = LogEntry [Domain a] (Maybe (AST a)) (Expr attr) (Domain a)
+                     | LogInfo String
 
 
 logRet :: EvalEnv a  -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
 logRet env e r = do
-  -- lift $ tell [LogEntry args n e r]
+  lift $ tell [LogEntry env.args env.node e r]
   return r
 
 
@@ -331,6 +359,10 @@ logErr :: EvalEnv a -> Expr attr -> String -> EvalMonad attr a (Domain a)
 logErr env e m = do
   lift $ tell [LogEntry env.args env.node  e (DBool False)]
   throwError m
+
+logInfo :: String -> EvalMonad attr a ()
+logInfo s = lift $ tell [LogInfo s]
+
 
 evalM :: (Ord a, Ord attr)
       => AttributeCtx attr a -- context

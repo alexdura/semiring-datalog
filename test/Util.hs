@@ -51,6 +51,7 @@ prettyLogEntry (Saiga.LogEntry args Nothing e r) = "ARG=(" ++ intercalate ", " (
                                                    ++ (case r of Saiga.DNode r' -> show r'.kind
                                                                  _ -> Saiga.prettyDomain r)
 
+prettyLogEntry (Saiga.LogInfo s) = "INFO: " ++ s
 
 
 prettyLog :: (Show a1, Show a2) => [Saiga.LogEntry a2 a1] -> String
