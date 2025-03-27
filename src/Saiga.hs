@@ -219,7 +219,7 @@ mkAttrState v = AttrState v False False
 data EvalEnv a = EvalEnv {
   node :: Maybe (AST a),
   args :: [Domain a],
-  vars :: Map String [Domain a]
+  vars :: Map String (Domain a)
   }
 
 mkFuncEvalEnv :: [Domain a] -> EvalEnv a
@@ -228,7 +228,14 @@ mkFuncEvalEnv args = EvalEnv Nothing args Map.empty
 mkAttrEvalEnv :: AST a -> [Domain a] -> EvalEnv a
 mkAttrEvalEnv n args = EvalEnv (Just n) args Map.empty
 
+mkExprEvalEnv :: EvalEnv a
 mkExprEvalEnv = EvalEnv Nothing [] Map.empty
+
+bindVar :: String -> Domain a -> EvalEnv a -> EvalEnv a
+bindVar name v env = env {vars = Map.insert name v env.vars}
+
+lookupVar :: String -> EvalEnv a -> Maybe (Domain a)
+lookupVar name env = Map.lookup name env.vars
 
 data EvalCtx attr a = EvalCtx {
   attrCache :: Map (AST a , attr, [Domain a]) (AttrState a),
@@ -408,6 +415,14 @@ evalM ctx env e@(Attr b attr args) = do
     _ -> logErr env e "Only AST nodes have attributes."
 
 
+evalM _ env e@(Var name) = case lookupVar name env of
+  Just v -> logRet env e v
+  Nothing -> logErr env e $ "Missing binding for variable " ++ name
+
+evalM ctx env e@(Let name expr1 expr2) = do
+  v <- evalM ctx env expr1
+  v' <- evalM ctx (bindVar name v env) expr2
+  logRet env e v'
 
 evalWithLog :: (Ord a, Ord attr)
             => AttributeCtx attr a -- context
