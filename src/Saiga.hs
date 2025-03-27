@@ -13,6 +13,7 @@ import Control.Monad.State hiding (guard)
 import Data.List (intercalate, find, singleton)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
+import Data.Maybe (fromJust)
 
 data Expr a = IVal Int
             | BVal Bool
@@ -206,13 +207,28 @@ data AttributeCtx attr a = AttributeCtx {
   builtinFunc :: String -> Maybe ([Domain a] -> Domain a)
   }
 
-data AttrState a = AttrState {attrValue :: Domain a,
-                              attrComputed :: Bool,
-                              attrVisited :: Bool}
+data AttrState a = AttrState {
+  attrValue :: Domain a,
+  attrComputed :: Bool,
+  attrVisited :: Bool
+  }
 
-
+mkAttrState :: Domain a -> AttrState a
 mkAttrState v = AttrState v False False
 
+data EvalEnv a = EvalEnv {
+  node :: Maybe (AST a),
+  args :: [Domain a],
+  vars :: Map String [Domain a]
+  }
+
+mkFuncEvalEnv :: [Domain a] -> EvalEnv a
+mkFuncEvalEnv args = EvalEnv Nothing args Map.empty
+
+mkAttrEvalEnv :: AST a -> [Domain a] -> EvalEnv a
+mkAttrEvalEnv n args = EvalEnv (Just n) args Map.empty
+
+mkExprEvalEnv = EvalEnv Nothing [] Map.empty
 
 data EvalCtx attr a = EvalCtx {
   attrCache :: Map (AST a , attr, [Domain a]) (AttrState a),
@@ -220,50 +236,49 @@ data EvalCtx attr a = EvalCtx {
   change :: Bool
   }
 
-mkEvalCtx =
-  EvalCtx Map.empty False False
+mkEvalCtx :: EvalCtx attr a
+mkEvalCtx = EvalCtx Map.empty False False
+
 
 
 computeFixpoint :: (Ord a,
                     Ord attr)
                 => AttributeCtx attr a
-                -> AST a -- node
+                -> EvalEnv a
                 -> attr -- attribute
-                -> [Domain a] -- args
                 -> Expr attr -- equation
                 -> Domain a -- old value
                 -> EvalMonad attr a (Domain a)
 
-computeFixpoint ctx b attr args expr v = do
+computeFixpoint ctx env attr expr v = do
   ectx <- get
   put $ ectx {change = False}
-  v' <- evalM ctx args b expr
+  v' <- evalM ctx env expr
   ectx' <- get
   if v' /= v || ectx'.change then do
     put $ ectx' {change = True}
-    computeFixpoint ctx b attr args expr v'
+    computeFixpoint ctx env attr expr v'
     else return v'
 
 
 evalCircularAttr :: (Ord a,
                      Ord attr)
                  => AttributeCtx attr a
-                 -> AST a -- node
+                 -> EvalEnv a -- environment (args, node, variables)
                  -> attr -- attribute
-                 -> [Domain a] -- args
                  -> Expr attr -- equation
                  -> Expr attr -- initial value
                  -> EvalMonad attr a (Domain a)
 
-evalCircularAttr ctx b attr args expr iexpr = do
+evalCircularAttr ctx env attr expr iexpr = do
   ectx <- get
-  let attrCacheKey = (b, attr, args)
+  let attrCacheKey = (fromJust env.node, attr, env.args)
   case Map.lookup attrCacheKey ectx.attrCache of
     Just as -> if as.attrComputed then return as.attrValue
                else if ectx.inCircle then if as.attrVisited then return as.attrValue
                                           else do -- !visited
       put $ ectx {attrCache = Map.insert attrCacheKey as {attrVisited = True} ectx.attrCache}
-      v' <- evalM ctx args b expr
+      v' <- evalM ctx env expr
       ectx' <- get
       put $ ectx' {change = ectx'.change || v' /= as.attrValue,
                    attrCache = Map.insert attrCacheKey as {attrValue = v',
@@ -273,7 +288,7 @@ evalCircularAttr ctx b attr args expr iexpr = do
                     else do -- !inCircle
       put $ ectx {inCircle = True,
                   attrCache = Map.insert attrCacheKey as {attrVisited = True} ectx.attrCache}
-      v' <- computeFixpoint ctx b attr args expr as.attrValue
+      v' <- computeFixpoint ctx env attr expr as.attrValue
       ectx' <- get
       put $ ectx' {inCircle = False,
                    attrCache = Map.insert attrCacheKey as {attrValue = v',
@@ -282,115 +297,116 @@ evalCircularAttr ctx b attr args expr iexpr = do
                                ectx'.attrCache}
       return v'
     Nothing -> do -- this should trigger a circular evaluation
-      v' <- evalM ctx args b iexpr
+      v' <- evalM ctx env iexpr
       ectx' <- get
       put $ ectx' {attrCache = Map.insert attrCacheKey (mkAttrState v') ectx'.attrCache}
-      evalCircularAttr ctx b attr args expr iexpr
+      evalCircularAttr ctx env attr expr iexpr
 
 
 type EvalMonad attr a r = ExceptT String (WriterT [LogEntry attr a] (State (EvalCtx attr a))) r
 
 
-data LogEntry attr a = LogEntry [Domain a] (AST a) (Expr attr) (Domain a)
+data LogEntry attr a = LogEntry [Domain a] (Maybe (AST a)) (Expr attr) (Domain a)
 
-evalM :: (Ord a, Ord attr)
-      => AttributeCtx attr a -- context
-      -> [Domain a] -- argument values
-      -> AST a -- current node
-      -> Expr attr -- expression
-      -> EvalMonad attr a (Domain a)
 
-logRet :: [Domain a] -> AST a -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
-logRet args n e r = do
+logRet :: EvalEnv a  -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
+logRet env e r = do
   -- lift $ tell [LogEntry args n e r]
   return r
 
 
-logRetAttr :: [Domain a] -> AST a -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
-logRetAttr args n e r = do
-  lift $ tell [LogEntry args n e r]
+logRetAttr :: EvalEnv a -> Expr attr -> Domain a -> EvalMonad attr a (Domain a)
+logRetAttr env e r = do
+  lift $ tell [LogEntry env.args env.node e r]
   return r
 
-
-logErr :: [Domain a] -> AST a -> Expr attr -> String -> EvalMonad attr a (Domain a)
-logErr args n e m = do
-  lift $ tell [LogEntry args n e (DBool False)]
+logErr :: EvalEnv a -> Expr attr -> String -> EvalMonad attr a (Domain a)
+logErr env e m = do
+  lift $ tell [LogEntry env.args env.node  e (DBool False)]
   throwError m
 
-evalM _ args n e@(IVal i) = logRet args n e (DInt i)
+evalM :: (Ord a, Ord attr)
+      => AttributeCtx attr a -- context
+      -> EvalEnv a -- eval environment
+      -> Expr attr -- expression
+      -> EvalMonad attr a (Domain a)
 
-evalM _ args n e@(BVal b) = logRet args n e (DBool b)
+evalM _ env e@(IVal i) = logRet env e (DInt i)
 
-evalM _ args n  e@(SVal s) = logRet args n e (DString s)
+evalM _ env e@(BVal b) = logRet env e (DBool b)
 
-evalM _ args n e@Nil = logRet args n e (DList [])
+evalM _ env  e@(SVal s) = logRet env e (DString s)
 
-evalM _ args n e@(Arg k) = logRet args n e (args !! k)
+evalM _ env e@Nil = logRet env e (DList [])
 
-evalM _ args n e@Node = logRet args n e (DNode n)
+evalM _ env e@(Arg k) = logRet env e (env.args !! k)
 
-evalM ctx args n e@(Cons x xs) = do
-  x' <- evalM ctx args n x
-  xs' <- evalM ctx args n xs
+evalM _ env e@Node = logRet env e (DNode $ fromJust env.node)
+
+evalM ctx env e@(Cons x xs) = do
+  x' <- evalM ctx env x
+  xs' <- evalM ctx env xs
   case xs' of
-    r@(DList xs'') -> logRet args n e (DList (x':xs''))
-    _ -> logErr args n e $ "Second argument of Cons must be a a list."
+    r@(DList xs'') -> logRet env e (DList (x':xs''))
+    _ -> logErr env e $ "Second argument of Cons must be a a list."
 
-evalM ctx args n e@(Head l) = do
-  l' <- evalM ctx args n l
+evalM ctx env e@(Head l) = do
+  l' <- evalM ctx env l
   case l' of
-    DList (v:_) -> logRet args n e v
-    _ -> logErr args n e $ "Head operation defined only for non-empty lists."
+    DList (v:_) -> logRet env e v
+    _ -> logErr env e $ "Head operation defined only for non-empty lists."
 
-evalM ctx args n e@(Tail l) = do
-  l' <- evalM ctx args n l
+evalM ctx env e@(Tail l) = do
+  l' <- evalM ctx env l
   case l' of
-    DList (_:vs) -> logRet args n e (DList vs)
-    _ -> logErr args n e $ "Tail operation defined only for non-empty lists."
+    DList (_:vs) -> logRet env e (DList vs)
+    _ -> logErr env e $ "Tail operation defined only for non-empty lists."
 
-evalM ctx args n e@(IfElse c t f) = do
-  c' <- evalM ctx args n c
+evalM ctx env e@(IfElse c t f) = do
+  c' <- evalM ctx env c
   case c' of
-    (DBool True) -> evalM ctx args n t
-    (DBool False) -> evalM ctx args n f
-    r -> logErr args n e $ "If condition must evaluate to a boolean value."
+    (DBool True) -> evalM ctx env t
+    (DBool False) -> evalM ctx env f
+    r -> logErr env e $ "If condition must evaluate to a boolean value."
 
-evalM ctx args n e@(IfEq l r t f) = do
-  l' <- evalM ctx args n l
-  r' <- evalM ctx args n r
-  if l' == r' then evalM ctx args n t
-    else evalM ctx args n f
+evalM ctx env e@(IfEq l r t f) = do
+  l' <- evalM ctx env l
+  r' <- evalM ctx env r
+  if l' == r' then evalM ctx env t
+    else evalM ctx env f
 
-evalM ctx args n e@(IfLt l r t f) = do
-  l' <- evalM ctx args n l
-  r' <- evalM ctx args n r
-  if l' < r' then evalM ctx args n t
-    else evalM ctx args n f
+evalM ctx env e@(IfLt l r t f) = do
+  l' <- evalM ctx env l
+  r' <- evalM ctx env r
+  if l' < r' then evalM ctx env t
+    else evalM ctx env f
 
-evalM ctx args n expr@(Func name es) = do
-  args' <- mapM (evalM ctx args n) es
+evalM ctx env expr@(Func name es) = do
+  args' <- mapM (evalM ctx env) es
   case ctx.func name of
-    Just expr -> evalM ctx args' n expr
+    Just expr -> evalM ctx (mkFuncEvalEnv args') expr
     _ -> case ctx.builtinFunc name of
-      Just f -> logRet args n expr (f args')
-      Nothing -> logErr args n expr $ "No builtin function " ++ name
+      Just f -> logRet (mkFuncEvalEnv args') expr (f args')
+      Nothing -> logErr env expr $ "No builtin function " ++ name
 
-evalM ctx argb n e@(Attr b attr args) = do
-  arg' <- mapM (evalM ctx argb n) args
-  b' <- evalM ctx argb n b
+evalM ctx env e@(Attr b attr args) = do
+  arg' <- mapM (evalM ctx env) args
+  b' <- evalM ctx env b
   case b' of
-    DNode b'' -> case ctx.builtin attr of
-      Just f -> logRetAttr arg' b'' e (f b'' arg')
-      Nothing -> case ctx.lookup attr of
-                   Just eq -> do
-                     r <- evalM ctx arg' b'' eq
-                     logRetAttr arg' b'' e r
-                   Nothing -> case ctx.circular attr of
-                     Just (eq, i, j) -> do
-                       r <- evalCircularAttr ctx b'' attr arg' eq i
-                       logRetAttr arg' b'' e r
-                     Nothing -> logErr argb n e "Missing attribute definition"
-    _ -> logErr argb n e "Only AST nodes have attributes."
+    DNode b'' -> let env' = mkAttrEvalEnv b'' arg' in
+      case ctx.builtin attr of
+        Just f -> logRetAttr env' e (f b'' arg')
+        Nothing -> case ctx.lookup attr of
+                     Just eq -> do
+                       r <- evalM ctx env' eq
+                       logRetAttr env' e r
+                     Nothing -> case ctx.circular attr of
+                       Just (eq, i, j) -> do
+                         r <- evalCircularAttr ctx env' attr eq i
+                         logRetAttr env' e r
+                       Nothing -> logErr env e "Missing attribute definition"
+    _ -> logErr env e "Only AST nodes have attributes."
+
 
 
 evalWithLog :: (Ord a, Ord attr)
@@ -401,4 +417,4 @@ evalWithLog :: (Ord a, Ord attr)
             -> (Either String (Domain a), [LogEntry attr a])
 
 evalWithLog ctx args n e =
-  evalState (runWriterT $ runExceptT (evalM ctx args n e)) mkEvalCtx
+  evalState (runWriterT $ runExceptT (evalM ctx (mkAttrEvalEnv n args) e)) mkEvalCtx

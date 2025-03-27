@@ -41,10 +41,16 @@ evalExpr p ast path expr =
 
 
 prettyLogEntry :: (Show a1, Show a2) => Saiga.LogEntry a2 a1 -> String
-prettyLogEntry (Saiga.LogEntry args n e r) = "ARG=(" ++ intercalate ", " (Saiga.prettyDomain <$> args) ++ ") NODE="
-                                             ++ show n.kind ++ " " ++ Saiga.prettyExpr 0 e ++ " R="
-                                             ++ (case r of Saiga.DNode r' -> show r'.kind
-                                                           _ -> Saiga.prettyDomain r)
+prettyLogEntry (Saiga.LogEntry args (Just n) e r) = "ARG=(" ++ intercalate ", " (Saiga.prettyDomain <$> args) ++ ") NODE="
+                                                   ++ show n.kind ++ " " ++ Saiga.prettyExpr 0 e ++ " R="
+                                                   ++ (case r of Saiga.DNode r' -> show r'.kind
+                                                                 _ -> Saiga.prettyDomain r)
+
+prettyLogEntry (Saiga.LogEntry args Nothing e r) = "ARG=(" ++ intercalate ", " (Saiga.prettyDomain <$> args) ++ ") "
+                                                   ++ Saiga.prettyExpr 0 e ++ " R="
+                                                   ++ (case r of Saiga.DNode r' -> show r'.kind
+                                                                 _ -> Saiga.prettyDomain r)
+
 
 
 prettyLog :: (Show a1, Show a2) => [Saiga.LogEntry a2 a1] -> String
