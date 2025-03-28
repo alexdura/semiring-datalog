@@ -117,7 +117,7 @@ dlSqrtProgram = SaigaToDatalogTranslation.translateProgram $
                 PlaygroundLang.playProgram
                 CFGLang.unknownDecl -- dummy argument
 
-saigaToDatalogRunnableTests = testGroup "Runnable ests for the Saiga to Datalog translation" [
+saigaToDatalogRunnableTests = testGroup "Runnable tests for the Saiga to Datalog translation" [
   datalogCFGLangTests,
   datalogPicoJavaTests,
   datalogPlayLangTests
@@ -251,13 +251,4 @@ datalogPicoJavaTests = testGroup "Tests for the Datalog version of PicoJava" [
       dlFindDeclDemand = DemandTransformation.transformProgram dlLocalLookup demand
       dlEvalCtx' = Eval.eval dlFindDeclDemand dlEvalCtx
   in testCase "finddecl 1" $ (show $ (Eval.query "d_finddecl_bbf" dlEvalCtx')) @?= "[([DString \"bool\",DList [DNode (AST {kind = (\"ClassDecl\",-11), token = \"int\", children = [AST {kind = (\"Block\",-12), token = \"\", children = []}]}),DNode (AST {kind = (\"ClassDecl\",-1), token = \"bool\", children = [AST {kind = (\"Block\",-2), token = \"\", children = []}]})]],True),([DString \"bool\",DList [DNode (AST {kind = (\"ClassDecl\",-1), token = \"bool\", children = [AST {kind = (\"Block\",-2), token = \"\", children = []}]})]],True)]"
-
-  -- let demand = DemandTransformation.initialDemand "finddecl" (Set.fromList [0, 1])
-  --     dlEvalCtx = Eval.addRelation "d_finddecl_bbf" (Map.singleton ([Saiga.DString "bool", Saiga.DList [Saiga.DNode SaigaPicoJava.intDecl,
-  --                                                                                                       Saiga.DNode SaigaPicoJava.boolDecl]]) True) $
-  --                 contextFromAST program2Ast
-  --     dlFindDeclDemand = DemandTransformation.transformProgram dlLocalLookup demand
-  -- in testCase "finddecl 1" $ do
-  --   Eval.evalStep dlFindDeclDemand dlEvalCtx
-  --   return ()
   ]

@@ -95,7 +95,7 @@ prettyExpr parentPrio b@(IfLt l r t f) =
 data SaigaElement attr a = Attribute attr Int (Expr attr)
                          | CircularAttribute attr Int (Expr attr)
                            (Expr attr) -- initial value
-                           String -- join operator
+                           (Expr attr) -- order predicate
                          | BuiltinAttribute attr Int (Domain a -> [Domain a] -> Domain a)
                          | Function String Int (Expr attr)
                          | BuiltinFunction String Int ([Domain a] -> Domain a)
@@ -146,7 +146,7 @@ makeAttributeCtx p = AttributeCtx {
       _ -> Nothing,
 
   circular = \attr -> case lookupAttribute attr p of
-      Just (CircularAttribute _ _ f i j) -> Just (f, i, j)
+      Just (CircularAttribute _ _ f i _) -> Just (f, i)
       _ -> Nothing,
 
   func = \name -> case lookupFunction name p of
@@ -223,7 +223,7 @@ prettyDomain (DList ds) = "[" ++ intercalate ", "  (prettyDomain <$> ds) ++ "]"
 data AttributeCtx attr a = AttributeCtx {
   lookup :: attr -> Maybe (Expr attr),
   builtin :: attr -> Maybe (AST a -> [Domain a] -> Domain a),
-  circular :: attr -> Maybe (Expr attr, Expr attr, String),
+  circular :: attr -> Maybe (Expr attr, Expr attr),
   func :: String -> Maybe (Expr attr),
   builtinFunc :: String -> Maybe ([Domain a] -> Domain a)
   }
@@ -440,7 +440,7 @@ evalM ctx env e@(Attr b attr args) = do
                        r <- evalM ctx env' eq
                        logRetAttr env' e r
                      Nothing -> case ctx.circular attr of
-                       Just (eq, i, j) -> do
+                       Just (eq, i) -> do
                          r <- evalCircularAttr ctx env' attr eq i
                          logRetAttr env' e r
                        Nothing -> logErr env e "Missing attribute definition"

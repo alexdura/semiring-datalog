@@ -31,9 +31,11 @@ emptyBinding :: Binding a
 emptyBinding = Map.empty
 
 immediateConsequence :: (DatalogGroundTerm a, Eq s, Semiring s) => Clause a s -> State (Context a s) ()
-immediateConsequence c = do
+immediateConsequence c@(Clause {}) = do
   bindings <- immediateConsequence' c.body (emptyBinding, Semiring.one)
   forM_ c.heads (\at -> insertAtoms at bindings)
+
+immediateConsequence c@(SubsumptionClause {}) = return ()
 
 insertAtom :: (DatalogGroundTerm a, Semiring s) => Atom a s -> (Binding a, s) -> State (Context a s) ()
 insertAtom (Literal p ts _) (b, v) = do

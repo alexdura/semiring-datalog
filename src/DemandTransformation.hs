@@ -68,7 +68,8 @@ bodyPredicateDemand boundVars (a : as) pd =
 bodyPredicateDemand _ [] pd = pd
 
 clausePredicateDemand :: Clause a s -> PredicateDemand -> PredicateDemand
-clausePredicateDemand (Clause h []) pd = pd
+clausePredicateDemand (Clause _ []) pd = pd
+clausePredicateDemand (SubsumptionClause {}) pd = pd
 clausePredicateDemand (Clause [l@(Literal p _ _)] bs) pd =
   let hDemand = getDemand p pd
       demandUpdates = (\dp -> bodyPredicateDemand (headDemandedVars l dp) bs) <$> Set.toList hDemand in
@@ -127,11 +128,13 @@ flattenProgram (Program cs) = Program $ concatMap flattenClause cs
 
 flattenClause :: Clause a s -> [Clause a s]
 flattenClause (Clause hs bs) = map (\h -> Clause [h] bs) hs
+flattenClause c@(SubsumptionClause {}) = [c]
 
 idbPredicates :: Program a s -> Set Predicate
 idbPredicates (Program cs) =
   let idbPredicatesForClause (Clause hs bs) = if null bs then []
                                               else concatMap (\(Literal p _ _) -> [p]) hs
+      idbPredicatesForClause (SubsumptionClause {}) = []
   in Set.fromList $ concatMap idbPredicatesForClause cs
 
 predicates :: Program a s -> Set Predicate
@@ -140,6 +143,7 @@ predicates (Program cs) =
                                                          Literal p _ _  -> [p]
                                                          _ -> [])
                                            (hs ++ bs)
+      predicatesForClause (SubsumptionClause {}) = []
   in Set.fromList $ concatMap predicatesForClause cs
 
 transformProgram :: Program a s
@@ -151,9 +155,12 @@ transformProgram prog ipd =
       pd = programPredicateDemand prog ipd
       isEDB pred = not $ Set.member pred (idbPredicates flatp)
       transformClause c@(Clause [h@(Literal p ts _)] bs) =
-        if False && null bs then [c] -- this is a fact, nothing to do here
-        else let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
-               concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
+        let demandPatterns = Set.toAscList (Map.findWithDefault Set.empty p pd) in
+          concatMap (\hdp -> genDemandRules h hdp bs isEDB) demandPatterns
+      transformClause c@(SubsumptionClause hl@(Literal pl _ _) hr@(Literal pr _ _) _) =
+        if (not $ null (Map.findWithDefault Set.empty pl pd)) ||
+           (not $ null (Map.findWithDefault Set.empty pr pd)) then [c]
+        else []
   in Program $ concatMap transformClause cs
 
 initialDemand :: Predicate -> DemandPattern -> PredicateDemand

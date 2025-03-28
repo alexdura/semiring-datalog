@@ -33,6 +33,14 @@ infixl 7 <*>
 (<*>) x y = Func "_builtin_mul" [x, y]
 
 
+attrCmp :: Expr a
+attrCmp =
+  let l = Arg 0
+      r = Arg 1
+  in
+    IfLt r l (BVal False) (BVal True)
+
+
 sqrtAttr :: SaigaElement PlayAttr a
 sqrtAttr = CircularAttribute Sqrt 1 (
   Let "old" (Node <.> Sqrt <?> [Arg 0]) (
@@ -42,7 +50,7 @@ sqrtAttr = CircularAttribute Sqrt 1 (
               )
           )
       )
-  ) (IVal 0) "NotImplemented"
+  ) (IVal 0) attrCmp
 
 sqrt1Attr :: SaigaElement PlayAttr a
 sqrt1Attr = CircularAttribute Sqrt1 1 (
@@ -52,7 +60,7 @@ sqrt1Attr = CircularAttribute Sqrt1 1 (
       new2 = new <*> new
   in
     IfLt arg new2 old new
-  ) (IVal 0) "NotImplemented"
+  ) (IVal 0) attrCmp
 
 
 squareAttr :: SaigaElement PlayAttr a
@@ -69,7 +77,7 @@ sqrt2Attr = CircularAttribute Sqrt2 1 (
               )
           )
       )
-  ) (IVal 0) "NotImplemented"
+  ) (IVal 0) attrCmp
 
 
 sqrt3Attr :: SaigaElement PlayAttr a
@@ -81,7 +89,7 @@ sqrt3Attr = CircularAttribute Sqrt3 1 (
               )
           )
       )
-  ) (IVal 0) "NotImplemented"
+  ) (IVal 0) attrCmp
 
 sqrt4Attr :: SaigaElement PlayAttr a
 sqrt4Attr = Attribute Sqrt4 1 $

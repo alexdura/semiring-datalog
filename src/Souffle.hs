@@ -46,6 +46,10 @@ clauseArities :: Clause a s -> Map Predicate Int -> Map Predicate Int
 clauseArities (Clause hs bs) = (foldr (.) id (predArity <$> hs)) .
                                (foldr (.) id (predArity <$> bs))
 
+clauseArities (SubsumptionClause hl hr bs) =  (foldr (.) id (predArity <$> bs)) .
+                                              (predArity hl) . (predArity hr)
+
+
 predArity :: Atom a s -> Map Predicate Int -> Map Predicate Int
 predArity (Literal p ts _) m =  Map.insert p (length ts) m
 predArity _ m = m
@@ -72,6 +76,6 @@ instance Souffle a => Souffle (Program a Bool) where
 instance Souffle (Domain (String, Int))  where
   soufflePrint (DInt n) = show n
   soufflePrint (DString s) = s
-  soufflePrint (DBool True) = "true"
-  soufflePrint (DBool False) = "false"
+  soufflePrint (DBool True) = "1"
+  soufflePrint (DBool False) = "0"
   soufflePrint _ = error "Not implemented"

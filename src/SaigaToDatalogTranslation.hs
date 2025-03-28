@@ -194,12 +194,20 @@ translateToClauseS (Attribute attr nargs e)= do
   es <- translateToTermS e
   return [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
 
-translateToClauseS (CircularAttribute attr nargs e ie _) = do
+translateToClauseS (CircularAttribute attr nargs e ie p) = do
   es <- translateToTermS e
   ies <- translateToTermS ie
+  ps <- translateToTermS p
   return $
     [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es] ++
-    [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- ies]
+    [[lit (show attr) $ [var "_node"] ++ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- ies] ++
+    [SubsumptionClause
+      (lit (show attr) $ [var "_node"] ++ [var $ "_parg_" ++ show i | i <- [0..nargs - 1]]
+       ++ [var "_arg_0"])
+      (lit (show attr) $ [var "_node"] ++ [var $ "_parg_" ++ show i | i <- [0..nargs - 1]]
+       ++ [var "_arg_1"])
+      (t ++ [equals v (Constant $ DBool True)]) | (v, t) <- ps]
+
 
 
 translateToClauseS _ = return []

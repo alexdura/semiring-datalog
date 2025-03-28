@@ -34,6 +34,7 @@ prettyTerm (Variable v) = v
 prettyTerm (Expr name ts _) = name ++ "(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
 prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
+prettyClause (SubsumptionClause hl hr bs) = prettyAtom hl ++ " <= " ++ prettyAtom hr ++ " <- " ++ intercalate ", " (map prettyAtom bs)
 
 prettyProgram (Program cs) = intercalate "\n" (map prettyClause cs)
 
