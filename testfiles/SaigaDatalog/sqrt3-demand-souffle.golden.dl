@@ -1,0 +1,19 @@
+.decl Sqrt3(_0:number, _1:number, _2:number)
+.decl Sqrt4(_0:number, _1:number, _2:number)
+.decl d_Sqrt3_bbf(_0:number, _1:number)
+.decl d_Sqrt4_bbf(_0:number, _1:number)
+
+Sqrt3(_node, _arg_0, old) :- d_Sqrt3_bbf(_node, _arg_0), Sqrt4(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _arg_0 < new2.
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt3(_node, _arg_0, new) :- d_Sqrt3_bbf(_node, _arg_0), Sqrt4(_node, _arg_0, _a), old = _a, _b = (old + 1), new = _b, _c = (new * new), new2 = _c, _arg_0 >= new2.
+d_Sqrt4_bbf(_node, _arg_0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt3(_node, _arg_0, 0) :- d_Sqrt3_bbf(_node, _arg_0).
+Sqrt3(_node, _parg_0, _arg_0) <= Sqrt3(_node, _parg_0, _arg_1) :- _arg_1 < _arg_0, 0 = 1.
+Sqrt3(_node, _parg_0, _arg_0) <= Sqrt3(_node, _parg_0, _arg_1) :- _arg_1 >= _arg_0, 1 = 1.
+Sqrt4(_node, _arg_0, _a) :- d_Sqrt4_bbf(_node, _arg_0), Sqrt3(_node, _arg_0, _a).
+d_Sqrt3_bbf(_node, _arg_0) :- d_Sqrt4_bbf(_node, _arg_0).
+
+.output Sqrt3
+.output Sqrt4
+.output d_Sqrt3_bbf
+.output d_Sqrt4_bbf

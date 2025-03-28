@@ -1,0 +1,17 @@
+.decl Sqrt1(_0:number, _1:number, _2:number)
+.decl d_Sqrt1_bbf(_0:number, _1:number)
+
+Sqrt1(_node, _arg_0, _f) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1), Sqrt1(_node, _arg_0, _c), _d = (_c + 1), _e = (_b * _d), _arg_0 < _e, Sqrt1(_node, _arg_0, _f).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1), Sqrt1(_node, _arg_0, _c), _d = (_c + 1), _e = (_b * _d), _arg_0 < _e.
+Sqrt1(_node, _arg_0, _h) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1), Sqrt1(_node, _arg_0, _c), _d = (_c + 1), _e = (_b * _d), _arg_0 >= _e, Sqrt1(_node, _arg_0, _g), _h = (_g + 1).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1).
+d_Sqrt1_bbf(_node, _arg_0) :- d_Sqrt1_bbf(_node, _arg_0), Sqrt1(_node, _arg_0, _a), _b = (_a + 1), Sqrt1(_node, _arg_0, _c), _d = (_c + 1), _e = (_b * _d), _arg_0 >= _e.
+Sqrt1(_node, _arg_0, 0) :- d_Sqrt1_bbf(_node, _arg_0).
+Sqrt1(_node, _parg_0, _arg_0) <= Sqrt1(_node, _parg_0, _arg_1) :- _arg_1 < _arg_0, 0 = 1.
+Sqrt1(_node, _parg_0, _arg_0) <= Sqrt1(_node, _parg_0, _arg_1) :- _arg_1 >= _arg_0, 1 = 1.
+
+.output Sqrt1
+.output d_Sqrt1_bbf

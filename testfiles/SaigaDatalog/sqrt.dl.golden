@@ -1,16 +1,24 @@
 Sqrt(_node, _arg_0, old) <- Sqrt(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, _c := _mul(new, new), new2 := _c, _builtin_lt(_arg_0, new2)
 Sqrt(_node, _arg_0, new) <- Sqrt(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, _c := _mul(new, new), new2 := _c, _builtin_gte(_arg_0, new2)
 Sqrt(_node, _arg_0, DInt 0) <- 
+Sqrt(_node, _parg_0, _arg_0) <= Sqrt(_node, _parg_0, _arg_1) <- _builtin_lt(_arg_1, _arg_0), _builtin_eq(DBool False, DBool True)
+Sqrt(_node, _parg_0, _arg_0) <= Sqrt(_node, _parg_0, _arg_1) <- _builtin_gte(_arg_1, _arg_0), _builtin_eq(DBool True, DBool True)
 Sqrt1(_node, _arg_0, _f) <- Sqrt1(_node, _arg_0, _a), _b := _add(_a, DInt 1), Sqrt1(_node, _arg_0, _c), _d := _add(_c, DInt 1), _e := _mul(_b, _d), _builtin_lt(_arg_0, _e), Sqrt1(_node, _arg_0, _f)
 Sqrt1(_node, _arg_0, _h) <- Sqrt1(_node, _arg_0, _a), _b := _add(_a, DInt 1), Sqrt1(_node, _arg_0, _c), _d := _add(_c, DInt 1), _e := _mul(_b, _d), _builtin_gte(_arg_0, _e), Sqrt1(_node, _arg_0, _g), _h := _add(_g, DInt 1)
 Sqrt1(_node, _arg_0, DInt 0) <- 
+Sqrt1(_node, _parg_0, _arg_0) <= Sqrt1(_node, _parg_0, _arg_1) <- _builtin_lt(_arg_1, _arg_0), _builtin_eq(DBool False, DBool True)
+Sqrt1(_node, _parg_0, _arg_0) <= Sqrt1(_node, _parg_0, _arg_1) <- _builtin_gte(_arg_1, _arg_0), _builtin_eq(DBool True, DBool True)
 Sqrt2(_node, _arg_0, old) <- Sqrt2(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, Square(_node, new, _c), new2 := _c, _builtin_lt(_arg_0, new2)
 Sqrt2(_node, _arg_0, new) <- Sqrt2(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, Square(_node, new, _c), new2 := _c, _builtin_gte(_arg_0, new2)
 Sqrt2(_node, _arg_0, DInt 0) <- 
+Sqrt2(_node, _parg_0, _arg_0) <= Sqrt2(_node, _parg_0, _arg_1) <- _builtin_lt(_arg_1, _arg_0), _builtin_eq(DBool False, DBool True)
+Sqrt2(_node, _parg_0, _arg_0) <= Sqrt2(_node, _parg_0, _arg_1) <- _builtin_gte(_arg_1, _arg_0), _builtin_eq(DBool True, DBool True)
 Square(_node, _arg_0, _a) <- _a := _mul(_arg_0, _arg_0)
 Sqrt3(_node, _arg_0, old) <- Sqrt4(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, _c := _mul(new, new), new2 := _c, _builtin_lt(_arg_0, new2)
 Sqrt3(_node, _arg_0, new) <- Sqrt4(_node, _arg_0, _a), old := _a, _b := _add(old, DInt 1), new := _b, _c := _mul(new, new), new2 := _c, _builtin_gte(_arg_0, new2)
 Sqrt3(_node, _arg_0, DInt 0) <- 
+Sqrt3(_node, _parg_0, _arg_0) <= Sqrt3(_node, _parg_0, _arg_1) <- _builtin_lt(_arg_1, _arg_0), _builtin_eq(DBool False, DBool True)
+Sqrt3(_node, _parg_0, _arg_0) <= Sqrt3(_node, _parg_0, _arg_1) <- _builtin_gte(_arg_1, _arg_0), _builtin_eq(DBool True, DBool True)
 Sqrt4(_node, _arg_0, _a) <- Sqrt3(_node, _arg_0, _a)
 Sqrt5Circ(_node, _arg_0, _arg_1, DInt 0) <- _builtin_eq(_arg_1, DInt 0)
 Sqrt5Circ(_node, _arg_0, _arg_1, old) <- _builtin_neq(_arg_1, DInt 0), _b := _add(_arg_1, DInt (-1)), Sqrt5Circ(_node, _arg_0, _b, _a), old := _a, _c := _add(old, DInt 1), new := _c, _d := _mul(new, new), new2 := _d, _builtin_lt(_arg_0, new2)

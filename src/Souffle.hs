@@ -75,7 +75,7 @@ instance Souffle a => Souffle (Program a Bool) where
 
 instance Souffle (Domain (String, Int))  where
   soufflePrint (DInt n) = show n
-  soufflePrint (DString s) = s
+  soufflePrint (DString s) = show s
   soufflePrint (DBool True) = "1"
   soufflePrint (DBool False) = "0"
   soufflePrint _ = error "Not implemented"
