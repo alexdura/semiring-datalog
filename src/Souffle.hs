@@ -18,6 +18,7 @@ instance Souffle a => Souffle (Term a) where
   soufflePrint (Constant c) = soufflePrint c
   soufflePrint (Expr "_add" [l, r] _) = "(" ++ soufflePrint l ++ " + " ++ soufflePrint r ++ ")"
   soufflePrint (Expr "_mul" [l, r] _) = "(" ++ soufflePrint l ++ " * " ++ soufflePrint r ++ ")"
+  soufflePrint (Fresh []) = "$"
   soufflePrint _ = error "Print not implemented for term."
 
 instance Souffle a => Souffle (Atom a Bool) where

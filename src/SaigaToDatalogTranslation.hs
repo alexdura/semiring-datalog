@@ -185,10 +185,14 @@ reservedName n = any (`isPrefixOf` n) ["_node", "_arg", "_nil", "_head", "_tail"
 freshVarNames :: [String]
 freshVarNames = ['_' : p : v | v <- "":freshVarNames, p <- ['a'..'z'], not $ reservedName ('_' : p : v)]
 
-translateToClauseS :: (SaigaAttribute attr, Ord a) => SaigaElement attr a -> State [String] [SaigaClause a]
+translateToClauseS :: (SaigaAttribute attr, Ord a)
+                   => SaigaElement attr a
+                   -> State [String] [SaigaClause a]
+
 translateToClauseS (Saiga.Function name nargs e) =  do
   es <- translateToTermS e
   return [[lit name $ [var $ "_arg_" ++ show i | i <- [0..nargs - 1]] ++ [v]] += t | (v, t) <- es]
+
 
 translateToClauseS (Attribute attr nargs e)= do
   es <- translateToTermS e
@@ -208,7 +212,18 @@ translateToClauseS (CircularAttribute attr nargs e ie p) = do
        ++ [var "_arg_1"])
       (t ++ [equals v (Constant $ DBool True)]) | (v, t) <- ps]
 
+translateToClauseS (Saiga.BuiltinFunction "_builtin_cons" 2 _) = do
+  return [[lit "_builtin_cons" $ [var "v", var "l", var "r"]] +=
+          [Bind (Fresh [var "v", var "l"]) (var "r")]]
 
+translateToClauseS (Saiga.BuiltinFunction "_builtin_head" 2 _) = do
+  return [[lit "_builtin_head" $ [var "l", var "r"]] += [lit "cons" $ [var "r", var "l", var "_"]]]
+
+translateToClauseS (Saiga.BuiltinFunction "_builtin_tail" 2 _) = do
+  return [[lit "_builtin_tail" $ [var "l", var "r"]] += [lit "cons" $ [var "_", var "l", var "r"]]]
+
+translateToClauseS (Saiga.BuiltinFunction "_builtin_nil" 0 _) = do
+  return [[lit "_builtin_nil" $ [var "r"]] += [Bind (var "r") (Fresh [])]]
 
 translateToClauseS _ = return []
 

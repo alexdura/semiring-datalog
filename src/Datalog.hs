@@ -32,6 +32,7 @@ prettyAtom (Bind s d) = prettyTerm d ++ " := " ++ prettyTerm s
 prettyTerm (Constant c) = show c
 prettyTerm (Variable v) = v
 prettyTerm (Expr name ts _) = name ++ "(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
+prettyTerm (Fresh ts) = "$(" ++ intercalate ", " (map prettyTerm ts) ++ ")"
 
 prettyClause (Clause hs ts) = intercalate ", " (map prettyAtom hs) ++ " <- " ++ intercalate ", " (map prettyAtom ts)
 prettyClause (SubsumptionClause hl hr bs) = prettyAtom hl ++ " <= " ++ prettyAtom hr ++ " <- " ++ intercalate ", " (map prettyAtom bs)

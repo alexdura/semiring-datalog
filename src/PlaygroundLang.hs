@@ -170,6 +170,14 @@ sqrt6IdAttr = Attribute Sqrt6Id 2 $
   Node <.> Sqrt6Circ <?> [Arg 0, Arg 1]
 
 
+listFunc1 :: SaigaElement PlayAttr a
+listFunc1 = Function "listFunc1" 0 $
+  let cons' h t = Func "_builtin_cons" [h, t]
+      head' l = Func "_builtin_head" [l]
+      nil' = Func "_builtin_nil" []
+  in head' $ cons' (IVal 1) (cons' (IVal 2) (cons' (IVal 3) nil'))
+
+
 playProgram :: AST (String, Int) -> SaigaProgram PlayAttr (String, Int)
 
 playProgram ast = [
@@ -192,8 +200,17 @@ playProgram ast = [
   sqrt6Attr,
   sqrt6IdAttr,
   --
-
+  listFunc1,
+  --
   BuiltinFunction "_builtin_add" 2 $ \[DInt m, DInt n] -> DInt $ m + n,
 
-  BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n
+  BuiltinFunction "_builtin_mul" 2 $ \[DInt m, DInt n] -> DInt $ m * n,
+
+  BuiltinFunction "_builtin_cons" 2 $ \[e, DList l] -> DList $ e:l,
+
+  BuiltinFunction "_builtin_tail" 1 $ \[DList l] -> DList $ (tail l),
+
+  BuiltinFunction "_builtin_head" 1 $ \[DList l] -> head l,
+
+  BuiltinFunction "_builtin_nil" 0 $ \[] -> DList []
   ]

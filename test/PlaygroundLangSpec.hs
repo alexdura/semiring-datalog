@@ -14,27 +14,35 @@ dummyAST = CFGLang.unknownDecl
 dummyNodeId = snd $ kind $ dummyAST
 
 playgroundLangTests = testGroup "Saiga attributes for the Playground language" [
-  testCase "Compute sqrt attribute " $
+  testCase "Compute sqrt attribute" $
     let expr = Node <.> Sqrt1 <?> [IVal 20]
     in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 4),
 
-  testCase "Compute sqrt1 attribute " $
+  testCase "Compute sqrt1 attribute" $
     let expr = Node <.> Sqrt1 <?> [IVal 11]
     in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 3),
 
-  testCase "Compute sqrt2 attribute " $
+  testCase "Compute sqrt2 attribute" $
     let expr = Node <.> Sqrt2 <?> [IVal 11]
     in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 3),
 
-  testCase "Compute sqrt4 attribute " $
+  testCase "Compute sqrt4 attribute" $
     let expr = Node <.> Sqrt4 <?> [IVal 11]
     in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 3),
 
-  testCase "Compute sqrt5 attribute " $
+  testCase "Compute sqrt5 attribute" $
     let expr = Node <.> Sqrt5 <?> [IVal 29]
     in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 5),
 
-  testCase "Compute sqrt6 attribute " $
+  testCase "Compute sqrt6 attribute" $
     let expr = Node <.> Sqrt6 <?> [IVal 64]
-    in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 8)
+    in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 8),
+
+  testCase "Build list of 3 elements" $
+    let cons' h t = Func "_builtin_cons" [h, t]
+        head' l = Func "_builtin_head" [l]
+        nil' = Func "_builtin_nil" []
+        expr = head' $ cons' (IVal 1) (cons' (IVal 2) (cons' (IVal 3) nil'))
+    in evalExpr1 playProgram dummyAST dummyNodeId expr @?= (DInt 1)
+
   ]

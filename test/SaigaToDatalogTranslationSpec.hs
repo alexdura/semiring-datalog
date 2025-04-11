@@ -229,6 +229,11 @@ saigaDatalogTests = testGroup "Saiga to Datalog translation" [
     "testfiles/SaigaDatalog/sqrt3-demand-souffle.golden.dl"
     "testfiles/SaigaDatalog/sqrt3-demand-souffle.out.dl",
 
+  let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
+      dlToySqrtDemand = transformProgram dlToySqrt listFunc1Demand
+  in goldenSouffleTest "Translate listFunc1, demand-transform, emit Souffle" dlToySqrtDemand
+    "testfiles/SaigaDatalog/listFunc1-demand-souffle.golden.dl"
+    "testfiles/SaigaDatalog/listFunc1-demand-souffle.out.dl",
 
   let dlToySqrt = translateProgram $ PlaygroundLang.playProgram SaigaPicoJava.boolDecl
   in goldenProgramTest "Translate sqrt" dlToySqrt
@@ -255,3 +260,6 @@ sqrt1Demand = Map.fromList [
 sqrt3Demand = Map.fromList [
   ("Sqrt3", Set.singleton $ Set.fromList [0, 1])
     ]
+
+listFunc1Demand = Map.fromList [
+  ("listFunc1", Set.singleton $ Set.fromList ([] :: [Int])) ]
