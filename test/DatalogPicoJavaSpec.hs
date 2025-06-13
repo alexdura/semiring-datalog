@@ -9,6 +9,7 @@ import qualified Eval
 import qualified SaigaPicoJava
 import Util
 import Control.Monad.State.Strict
+import Control.Monad
 import qualified PicoJava
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
