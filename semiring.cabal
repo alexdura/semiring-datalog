@@ -58,12 +58,12 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
-    , csv
+    , csv >=0.1
     , filepath
     , mtl
-    , optparse-applicative
+    , optparse-applicative >=0.18
     , parsec
-    , semirings
+    , semirings >=0.6
     , transformers
   default-language: Haskell2010
 
@@ -86,13 +86,13 @@ executable semiring-exe
   build-depends:
       base >=4.7 && <5
     , containers
-    , csv
+    , csv >=0.1
     , filepath
     , mtl
-    , optparse-applicative
+    , optparse-applicative >=0.18
     , parsec
     , semiring
-    , semirings
+    , semirings >=0.6
     , transformers
   default-language: Haskell2010
 
@@ -126,13 +126,13 @@ test-suite semiring-test
   build-depends:
       base >=4.7 && <5
     , containers
-    , csv
+    , csv >=0.1
     , filepath
     , mtl
-    , optparse-applicative
+    , optparse-applicative >=0.18
     , parsec
     , semiring
-    , semirings
+    , semirings >=0.6
     , tasty
     , tasty-golden
     , tasty-hunit

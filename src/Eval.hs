@@ -8,6 +8,7 @@ import Data.Maybe
 import qualified Text.CSV as CSV
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
+import Control.Monad
 import Datalog
 
 type Relation a b = Map.Map [a] b

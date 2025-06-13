@@ -4,7 +4,7 @@ module AST (AST(..), pretty, numberNodes, parentMap) where
 
 import Control.Monad.State.Strict
 import Data.Map.Strict hiding (foldl)
-
+import Control.Monad
 
 
 data AST a = AST {kind::a, token::String, children::[AST a]} deriving (Eq, Show, Foldable, Ord)

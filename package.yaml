@@ -22,9 +22,9 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - containers
-- semirings
-- csv
-- optparse-applicative
+- semirings >= 0.6
+- csv >= 0.1
+- optparse-applicative >= 0.18
 - filepath
 - parsec
 - mtl
